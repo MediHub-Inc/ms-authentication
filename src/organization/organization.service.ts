@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Business } from './business.model';
+import { Business } from './organization.model';
 
 @Injectable()
 export class BusinessService {

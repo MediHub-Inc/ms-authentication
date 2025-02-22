@@ -7,7 +7,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { BusinessService } from '../business/business.service';
+import { BusinessService } from '../organization/organization.service';
 import { RefreshTokenService } from '../refresh-token/refresh-token.service';
 import { User } from '../user/user.model';
 import { UserService } from '../user/user.service';

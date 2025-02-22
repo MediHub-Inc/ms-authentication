@@ -1,6 +1,6 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { Business } from './business.model';
-import { BusinessService } from './business.service';
+import { Business } from './organization.model';
+import { BusinessService } from './organization.service';
 
 @Controller('business')
 export class BusinessController {

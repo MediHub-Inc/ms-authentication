@@ -3,7 +3,7 @@ import { BaseModel } from '../utils/shared/model/base.model';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
-export class Business extends BaseModel {
+export class Organization extends BaseModel {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

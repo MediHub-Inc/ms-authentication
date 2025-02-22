@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { Business } from '../business/business.model';
+import { Organization } from '../organization/organization.model';
 import { UserRole as UserRoleEnum } from '../utils/enums/user-role.enum';
 import { UserStatus } from '../utils/enums/user-status.enum';
 import { BaseModel } from '../utils/shared/model/base.model';
@@ -16,13 +16,13 @@ export class User extends BaseModel {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @OneToOne(() => Business, {
+  @OneToOne(() => Organization, {
     cascade: true,
     nullable: false,
     onDelete: 'CASCADE',
   })
   @JoinColumn()
-  business: Business;
+  organization: Organization;
 
   @Column({ length: 25 })
   firstName: string;

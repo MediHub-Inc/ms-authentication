@@ -7,8 +7,8 @@ import { UserService } from '../user/user.service';
 import { AuthCodeController } from './auth-code.controller';
 import { AuthCode } from './auth-code.model';
 import { AuthCodeService } from './auth-code.service';
-import { BusinessService } from '../business/business.service';
-import { BusinessModule } from 'src/business/business.module';
+import { BusinessService } from '../organization/organization.service';
+import { BusinessModule } from 'src/organization/organization.module';
 import { AuthenticationCodes } from './authentication-codes.model';
 import { RefreshTokenService } from 'src/refresh-token/refresh-token.service';
 
