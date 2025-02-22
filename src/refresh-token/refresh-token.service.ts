@@ -89,8 +89,11 @@ export class RefreshTokenService {
       token: refreshToken,
     };
     try {
-      const refreshTokenModel = new RefreshToken(refreshTokenProps);
-      await this.invalidatePreviousRefreshTokenForUser(userCredential.user.id);
+      const refreshTokenModel = new RefreshToken({
+        userId: Number(userCredential.user.id),
+        token: refreshToken,
+      });
+      await this.invalidatePreviousRefreshTokenForUser(Number(userCredential.user.id));
       const authCodes = await this.authenticationCodesRepository.create({
         id: RefreshToken.prefix + userCredential.user.id,
         token: refreshTokenModel.token,

@@ -13,8 +13,8 @@ import {
 
 @Entity()
 export class User extends BaseModel {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @OneToOne(() => Business, {
     cascade: true,

@@ -49,13 +49,12 @@ export class UserRoleService {
   findAll() {
     return this.userRoleRepository.find();
   }
-
   findOne(id: number) {
-    return this.userRoleRepository.findOne({ where: { id } });
+    return this.userRoleRepository.findOne({ where: { id: String(id) } });
   }
 
   async update(id: number, updateUserRoleDto: UpdateUserRoleDto) {
-    const userRole = await this.userRoleRepository.findOne({ where: { id } });
+    const userRole = await this.userRoleRepository.findOne({ where: { id: String(id) } });
     if (!userRole)
       throw new InternalServerErrorException(`User Role could not be found`);
 
@@ -65,7 +64,7 @@ export class UserRoleService {
     } as UserRole;
     
     await this.userRoleRepository.update(id, updatedData);
-    return this.userRoleRepository.findOne({ where: { id } });
+    return this.userRoleRepository.findOne({ where: { id: String(id) } });
   }
 
   remove(id: number) {

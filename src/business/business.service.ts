@@ -30,7 +30,7 @@ export class BusinessService {
     const business = await this.businessRepository.find({
       where: [
         {
-          id,
+          id: id.toString(),
         },
       ],
     });

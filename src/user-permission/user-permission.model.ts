@@ -4,8 +4,8 @@ import { UserRole } from "../user-role/user-role.model";
 
 @Entity()
 export class UserPermission extends BaseModel {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column()
   name: string;

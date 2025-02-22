@@ -10,8 +10,8 @@ import {
 
 @Entity()
 export class UserCredential extends BaseModel {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @OneToOne(() => User, {
     cascade: true,

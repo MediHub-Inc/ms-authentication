@@ -6,8 +6,8 @@ import { ManyToMany, JoinTable } from 'typeorm';
 
 @Entity()
 export class UserRole extends BaseModel {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @Column({
     type: 'enum',

@@ -19,16 +19,16 @@ export class UserPermissionController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.userPermissionService.findOne(+id);
+    return this.userPermissionService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateUserPermissionDto: UpdateUserPermissionDto) {
-    return this.userPermissionService.update(+id, updateUserPermissionDto);
+    return this.userPermissionService.update(id, updateUserPermissionDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.userPermissionService.remove(+id);
+    return this.userPermissionService.remove(id);
   }
 }

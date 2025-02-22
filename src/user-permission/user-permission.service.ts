@@ -24,16 +24,15 @@ export class UserPermissionService {
   findAll() {
     return this.userPermissionRepository.find();
   }
-
-  findOne(id: number) {
+  findOne(id: string) {
     return this.userPermissionRepository.findOne({ where: { id } });
   }
 
-  update(id: number, updateUserPermissionDto: UpdateUserPermissionDto) {
+  update(id: string, updateUserPermissionDto: UpdateUserPermissionDto) {
     return this.userPermissionRepository.update(id, updateUserPermissionDto);
   }
 
-  remove(id: number) {
+  remove(id: string) {
     return this.userPermissionRepository.delete(id);
   }
 }
