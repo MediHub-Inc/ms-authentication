@@ -27,7 +27,7 @@ export class RegisterUserDto {
 
   @IsNotEmpty()
   @IsNumber()
-  businessId: number;
+  organizationId: number;
 
   @IsNotEmpty()
   @IsString()

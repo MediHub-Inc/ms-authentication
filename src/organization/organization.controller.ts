@@ -1,12 +1,12 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { Business } from './organization.model';
-import { BusinessService } from './organization.service';
+import { Organization } from './organization.model';
+import { OrganizationService } from './organization.service';
 
-@Controller('business')
-export class BusinessController {
-  constructor(private businessService: BusinessService) {}
+@Controller('organization') 
+export class OrganizationController {
+  constructor(private organizationService: OrganizationService) {}
   @Post()
-  create(@Body() business: Business) {
-    return this.businessService.createBusiness(business);
+  create(@Body() organization: Organization) {
+    return this.organizationService.createOrganization(organization);
   }
 }

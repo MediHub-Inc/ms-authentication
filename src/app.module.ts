@@ -9,7 +9,7 @@ import { UserCredentialModule } from './user-credential/user-credential.module';
 import { AuthCodeService } from './auth-code/auth-code.service';
 import { UserCredentialService } from './user-credential/user-credential.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { BusinessModule } from './organization/organization.module';
+import { OrganizationModule } from './organization/organization.module';
 import { UserService } from './user/user.service';
 import { RefreshTokenService } from './refresh-token/refresh-token.service';
 import { UserRoleModule } from './user-role/user-role.module';
@@ -33,7 +33,7 @@ import { AppConfig, DatabaseConfig } from './config';
     UserModule,
     AuthCodeModule,
     UserCredentialModule,
-    BusinessModule,
+    OrganizationModule,
     UserRoleModule,
     UserPermissionModule,
   ],

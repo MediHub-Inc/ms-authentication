@@ -7,8 +7,8 @@ import { UserService } from '../user/user.service';
 import { AuthCodeController } from './auth-code.controller';
 import { AuthCode } from './auth-code.model';
 import { AuthCodeService } from './auth-code.service';
-import { BusinessService } from '../organization/organization.service';
-import { BusinessModule } from 'src/organization/organization.module';
+import { OrganizationService } from '../organization/organization.service';
+import { OrganizationModule } from '../organization/organization.module';
 import { AuthenticationCodes } from './authentication-codes.model';
 import { RefreshTokenService } from 'src/refresh-token/refresh-token.service';
 
@@ -17,14 +17,14 @@ import { RefreshTokenService } from 'src/refresh-token/refresh-token.service';
     TypeOrmModule.forFeature([AuthCode, AuthenticationCodes]),
     UserModule,
     UserCredentialModule,
-    BusinessModule,
+    OrganizationModule,
   ],
   controllers: [AuthCodeController],
   providers: [
     AuthCodeService,
     UserService,
     UserCredentialService,
-    BusinessService,
+    OrganizationService,
     RefreshTokenService,
   ],
   exports: [

@@ -5,37 +5,37 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Business } from './organization.model';
+import { Organization } from './organization.model';
 
 @Injectable()
-export class BusinessService {
+export class OrganizationService {
   constructor(
-    @InjectRepository(Business)
-    private businessRepository: Repository<Business>,
+    @InjectRepository(Organization)
+    private organizationRepository: Repository<Organization>,
   ) {}
 
-  async createBusiness(business: Business): Promise<Business> {
-    const createdBusiness = await this.businessRepository.create(business);
-    if (!createdBusiness)
-      throw new InternalServerErrorException(`Business could not be created`);
-    const insertedBusiness = await this.businessRepository.save(
-      createdBusiness,
+  async createOrganization(organization: Organization): Promise<Organization> {
+    const createdOrganization = await this.organizationRepository.create(organization);
+    if (!createdOrganization)
+      throw new InternalServerErrorException(`Organization could not be created`);
+    const insertedOrganization = await this.organizationRepository.save(
+      createdOrganization,
     );
-    if (!insertedBusiness)
-      throw new InternalServerErrorException(`Business could not be save`);
-    return insertedBusiness;
+    if (!insertedOrganization)
+      throw new InternalServerErrorException(`Organization could not be save`);
+    return insertedOrganization;
   }
 
-  async getBusinessById(id: number): Promise<Business> {
-    const business = await this.businessRepository.find({
+  async getOrganizationById(id: number): Promise<Organization> {
+    const organization = await this.organizationRepository.find({
       where: [
         {
           id: id.toString(),
         },
       ],
     });
-    if (!business[0])
-      throw new NotFoundException(`Business with id ${id} could not be found!`);
-    return business[0];
+    if (!organization[0])
+      throw new NotFoundException(`Organization with id ${id} could not be found!`);
+    return organization[0];
   }
 }

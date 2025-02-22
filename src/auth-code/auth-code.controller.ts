@@ -7,7 +7,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { BusinessService } from '../organization/organization.service';
+import { OrganizationService } from '../organization/organization.service';
 import { RefreshTokenService } from '../refresh-token/refresh-token.service';
 import { User } from '../user/user.model';
 import { UserService } from '../user/user.service';
@@ -28,7 +28,7 @@ export class AuthCodeController {
     private authCodeService: AuthCodeService,
     private userService: UserService,
     private userCredentialService: UserCredentialService,
-    private businessService: BusinessService,
+    private organizationService: OrganizationService,
     private refreshTokenService: RefreshTokenService,
   ) {}
 
@@ -57,14 +57,14 @@ export class AuthCodeController {
     @Body() registerUserDto: RegisterUserDto,
   ): Promise<UserCredential> {
     //Fetch business Information by id
-    const business = await this.businessService.getBusinessById(
-      registerUserDto.businessId,
+    const organization = await this.organizationService.getOrganizationById(
+        registerUserDto.organizationId,
     );
 
     // Create User
     const userParams = new User({
       ...registerUserDto,
-      business,
+        organization,
     } as unknown as User);
     const user = await this.userService.createUser(userParams);
 
