@@ -25,6 +25,8 @@ export class UserCredential extends BaseModel {
   username: string;
 
   @Column({ length: 255 })
+  email: string;
+  @Column({ length: 255 })
   passwordHash: string;
 
   @Column({ length: 255, nullable: true })

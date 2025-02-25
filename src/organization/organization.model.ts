@@ -1,6 +1,6 @@
-import { UserStatus } from '../utils/enums/user-status.enum';
 import { BaseModel } from '../utils/shared/model/base.model';
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { User } from '../user/user.model';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity()
 export class Organization extends BaseModel {
@@ -10,16 +10,15 @@ export class Organization extends BaseModel {
   @Column({ length: 120 })
   name: string;
 
-  @Column({ type: 'bigint' })
-  ruc: number;
+  @Column({ type: 'varchar', length: 11, unique: true })
+  ruc: string;
 
   @Column({ length: 120, nullable: true })
-  logo: string;
+  logo?: string;
 
-  @Column({
-    type: 'enum',
-    enum: UserStatus,
-    default: UserStatus.ACTIVE,
-  })
-  status: UserStatus;
+  @Column({ default: true })
+  isActive: boolean;
+
+  @OneToMany(() => User, (user) => user.organization)
+  users: User[];
 }

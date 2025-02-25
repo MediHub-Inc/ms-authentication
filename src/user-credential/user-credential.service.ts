@@ -71,17 +71,17 @@ export class UserCredentialService {
     return nonDisabledUser;
   }
 
-  async getUserCredentialByUserId(id: number): Promise<UserCredential> {
+  async getUserCredentialByUserId(id: string): Promise<UserCredential> {
     const userCredential = await this.userCredentialRepository
       .createQueryBuilder('uc')
       .innerJoinAndSelect('uc.user', 'user')
-      .where('uc.userId = :userId', { userId: id })
+      .where('user.id = :userId', { userId: id }) // ✅ Cambiar 'uc.userId' por 'user.id'
       .getOne();
-
+  
     if (!userCredential) {
       throw new NotFoundException(`User credential with userId ${id} not found`);
     }
-
+  
     return userCredential;
-  }
+  }  
 }
