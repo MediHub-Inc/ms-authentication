@@ -7,18 +7,18 @@ export class UserPermission extends BaseModel {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ unique: true })
   name: string;
 
-  @Column()
+  @Column({ type: 'text' })
   description: string;
 
-  @Column()
+  @Column({ default: true })
   isActive: boolean;
 
   @ManyToMany(() => UserRole, (role) => role.permissions)
   roles: UserRole[];
-  
+
   constructor(userPermission: Partial<UserPermission>) {
     super();
     Object.assign(this, userPermission);

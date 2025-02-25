@@ -19,7 +19,8 @@ export class UserRoleController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.userRoleService.findOne(+id);
+    console.log(id);
+    return this.userRoleService.findOne(id);
   }
 
   @Patch(':id')

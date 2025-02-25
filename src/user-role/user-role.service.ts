@@ -49,8 +49,8 @@ export class UserRoleService {
   findAll() {
     return this.userRoleRepository.find();
   }
-  findOne(id: number) {
-    return this.userRoleRepository.findOne({ where: { id: String(id) } });
+  findOne(id: string) {
+    return this.userRoleRepository.findOne({ where: { id: id }, relations: ['permissions'] });
   }
 
   async update(id: number, updateUserRoleDto: UpdateUserRoleDto) {

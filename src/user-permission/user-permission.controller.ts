@@ -8,7 +8,7 @@ export class UserPermissionController {
   constructor(private readonly userPermissionService: UserPermissionService) {}
 
   @Post()
-  create(@Body() createUserPermissionDto: CreateUserPermissionDto) {
+  create(@Body() createUserPermissionDto: CreateUserPermissionDto[]) {
     return this.userPermissionService.create(createUserPermissionDto);
   }
 

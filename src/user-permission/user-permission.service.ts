@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CreateUserPermissionDto } from './dto/create-user-permission.dto';
 import { UpdateUserPermissionDto } from './dto/update-user-permission.dto';
 import { UserPermission } from './user-permission.model';
@@ -10,16 +10,20 @@ export class UserPermissionService {
   constructor(
     @InjectRepository(UserPermission) private userPermissionRepository: Repository<UserPermission>,
   ) {}
-  async create(createUserPermissionDto: CreateUserPermissionDto) {
-    const createdUserPermission = await this.userPermissionRepository.create(createUserPermissionDto);
-    if (!createdUserPermission)
-      throw new InternalServerErrorException(`User Permission could not be created`);
-
-    const insertedUserPermission = await this.userPermissionRepository.save(createdUserPermission);
-    if (!insertedUserPermission)
-      throw new InternalServerErrorException(`User Permission could not be saved`);
-    return createdUserPermission;
+  async create(createUserPermissionDto: CreateUserPermissionDto[]) {
+    if (!Array.isArray(createUserPermissionDto) || createUserPermissionDto.length === 0) {
+      throw new BadRequestException('No permissions provided');
+    }
+  
+    // ✅ Crear los permisos en batch
+    const createdUserPermissions = this.userPermissionRepository.create(createUserPermissionDto);
+  
+    // ✅ Guardar en la BD
+    const insertedUserPermissions = await this.userPermissionRepository.save(createdUserPermissions);
+  
+    return insertedUserPermissions;
   }
+  
 
   findAll() {
     return this.userPermissionRepository.find();
