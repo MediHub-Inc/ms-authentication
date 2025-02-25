@@ -1,4 +1,4 @@
 export enum GrantType {
-  ACCESS = 'authorization_code',
+  ACCESS = 'authentication',
   REFRESH = 'refresh_token',
 };

@@ -17,4 +17,10 @@ export class RefreshToken {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @Column({ type: 'timestamp' })
+  expiresAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  revokedAt?: Date;
 }

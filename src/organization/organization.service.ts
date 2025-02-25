@@ -15,6 +15,7 @@ export class OrganizationService {
   ) {}
 
   async createOrganization(organization: Organization): Promise<Organization> {
+    console.log("organization: ", organization);
     const createdOrganization = await this.organizationRepository.create(organization);
     if (!createdOrganization)
       throw new InternalServerErrorException(`Organization could not be created`);
