@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AuthenticationCode } from '../authentication/authentication.model';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { RefreshToken } from './refresh-token.model';
 import { generateAccessToken, generateRefreshToken, JWT_EXPIRATION_TIME } from '../utils/helpers/jwt.helper';
 import { GrantType } from '../utils/enums/grant-type.enum';
@@ -57,45 +57,28 @@ export class TokenService {
       throw new BadRequestException(`Invalid grantType: expected "refresh_token", received "${grantType}"`);
     }
 
-    const refreshToken = await this.refreshTokenRepository.findOne({
-      where: { token: oldRefreshToken },
-      relations: ['user'],
-    });
-
+    // 🚨 Validar y revocar el refresh token anterior
+    const refreshToken = await this.validateAndRevokeRefreshToken(oldRefreshToken);
     if (!refreshToken) {
-      throw new NotFoundException('Invalid refresh token');
+      throw new UnauthorizedException('Invalid or expired refresh token. Please log in again.');
     }
 
-    // ⏳ Si el token ha expirado
-    if (new Date() > refreshToken.expiresAt) {
-      // 🚨 Revocar el token en la base de datos
+    // 🚨 Límite de usos permitidos
+    if (refreshToken.refreshCount >= 1) {
       await this.refreshTokenRepository.update(refreshToken.id, { revokedAt: new Date() });
-
-      throw new UnauthorizedException('Refresh token expired. Please log in again.');
+      throw new UnauthorizedException('Refresh token already used. Please log in again.');
     }
 
-    // 🛑 Si el token ya fue revocado previamente
-    if (refreshToken.revokedAt) {
-      throw new UnauthorizedException('Refresh token has been revoked.');
-    }
-    console.log('🔑 refreshToken', refreshToken);
-    // ✅ Generar un nuevo Access Token y Refresh Token
+    // ✅ Incrementar el contador de uso
+    await this.refreshTokenRepository.update(refreshToken.id, { refreshCount: refreshToken.refreshCount + 1 });
+
+    // ✅ Generar solo un nuevo **Access Token**, pero NO un nuevo Refresh Token
     const newAccessToken = generateAccessToken(refreshToken.user.id);
-    const newRefreshToken = generateRefreshToken(refreshToken.user.id);
 
-    // 🗑️ Revocar el refresh token anterior
-    await this.refreshTokenRepository.update(refreshToken.id, { revokedAt: new Date() });
-
-    // 💾 Guardar el nuevo refresh token
-    await this.refreshTokenRepository.save({
-      token: newRefreshToken,
-      user: refreshToken.user,
-      expiresIn: JWT_EXPIRATION_TIME.REFRESH_TOKEN,
-      expiresAt: new Date(Date.now() + JWT_EXPIRATION_TIME.REFRESH_TOKEN * 1000),
-    });
-
-    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    return { accessToken: newAccessToken };
   }
+
+
 
   async validateAndRevokeRefreshToken(refreshToken: string) {
     const existingToken = await this.refreshTokenRepository.findOne({

@@ -23,4 +23,7 @@ export class RefreshToken {
 
   @Column({ type: 'timestamp', nullable: true })
   revokedAt?: Date;
+
+  @Column({ type: 'int', default: 0 })
+  refreshCount: number;
 }

@@ -14,8 +14,8 @@ export class TokenController {
   async getToken(@Body() { authenticationCode, grantType }: any, @Res({ passthrough: true }) res: Response) {
     const tokens = await this.tokenService.exchangeCodeForToken(authenticationCode, grantType);
 
-     // ✅ Guardar en una cookie segura con `httpOnly`
-     res.cookie('accessToken', tokens.accessToken, {
+    // ✅ Guardar en una cookie segura con `httpOnly`
+    res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', // Se activa solo en producción
       sameSite: 'lax',
@@ -36,40 +36,26 @@ export class TokenController {
    * ✅ Refrescar un token usando el refreshToken
    */
   @Post('refresh-token')
-async refreshToken(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async refreshToken(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const oldRefreshToken = req.cookies?.refreshToken;
 
     if (!oldRefreshToken) {
-        throw new UnauthorizedException('No refresh token found in cookies');
+      throw new UnauthorizedException('No refresh token found in cookies');
     }
 
-    // 🚨 Buscar el refresh token en la base de datos
-    const refreshToken = await this.tokenService.validateAndRevokeRefreshToken(oldRefreshToken);
-
-    if (!refreshToken) {
-        throw new UnauthorizedException('Invalid or revoked refresh token');
-    }
-
-    // ✅ Generar nuevos tokens
-    const tokens = await this.tokenService.generateNewTokens(refreshToken.user.id);
+    // ✅ Delegar toda la lógica de validación y generación al servicio
+    const tokens = await this.tokenService.refreshToken(oldRefreshToken, req.body.grantType);
 
     // ✅ Almacenar el nuevo accessToken en la cookie
     res.cookie('accessToken', tokens.accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-        maxAge: 3600000, // 1 hora
-    });
-
-    // ✅ Almacenar el nuevo refreshToken en la cookie
-    res.cookie('refreshToken', tokens.refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      maxAge: JWT_EXPIRATION_TIME_IN_MS.ACCESS_TOKEN, // 1 hora
     });
 
     return { message: 'Access token refreshed' };
-}
+  }
+
 
 }
