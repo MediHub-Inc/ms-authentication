@@ -35,14 +35,16 @@ export class TokenController {
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', // Se activa solo en producción
-      sameSite: 'lax',
+      sameSite: 'none',
+      domain: 'localhost',
       maxAge: JWT_EXPIRATION_TIME_IN_MS.ACCESS_TOKEN, // 1 hora en milisegundos
     });
 
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'none',
+      domain: 'localhost',
       maxAge: JWT_EXPIRATION_TIME_IN_MS.REFRESH_TOKEN,
     });
 
@@ -73,7 +75,8 @@ export class TokenController {
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      sameSite: 'none',
+      domain: 'localhost',
       maxAge: JWT_EXPIRATION_TIME_IN_MS.ACCESS_TOKEN, // 1 hora
     });
 
@@ -82,7 +85,12 @@ export class TokenController {
 
   @Get('validate')
   async validateToken(@Req() req: Request) {
-    const token = req.cookies?.accessToken;
+    console.log(req.cookies);
+    // 🛑 Intenta obtener el token desde la cookie
+    let token = req.cookies?.accessToken;
+
+    // 🔄 Si no está en la cookie, intenta desde `Authorization` Header
+    token = token || req.headers.authorization?.split(' ')[1];
     if (!token) {
       throw new UnauthorizedException('No token found in cookies');
     }

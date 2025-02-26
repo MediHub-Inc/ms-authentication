@@ -1,8 +1,8 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
-import {UserRole as UserRoleEnum} from '../utils/enums/user-role.enum'
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { UserRole as UserRoleEnum } from '../utils/enums/user-role.enum';
 import { BaseModel } from '../utils/shared/model/base.model';
 import { UserPermission } from '../user-permission/user-permission.model';
-import { ManyToMany, JoinTable } from 'typeorm';    
+import { ManyToMany, JoinTable } from 'typeorm';
 
 @Entity()
 export class UserRole extends BaseModel {

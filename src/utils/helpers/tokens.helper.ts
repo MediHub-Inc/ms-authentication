@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Response } from 'express';
 import { getExpiresInFromJwt } from './expires-in.helper';
 
-export const setTokenInCookies = async (tokenData, res: Response) => {
+export const setTokenInCookies = (tokenData, res: Response) => {
   res.cookie('factu_fazil_access_token', tokenData.accessToken, {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,

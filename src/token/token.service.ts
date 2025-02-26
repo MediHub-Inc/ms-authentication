@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
@@ -15,9 +16,9 @@ import {
   generateAccessToken,
   generateRefreshToken,
   JWT_EXPIRATION_TIME,
+  verifyToken,
 } from '../utils/helpers/jwt.helper';
 import { GrantType } from '../utils/enums/grant-type.enum';
-import { verify } from 'jsonwebtoken';
 import { User } from 'src/user/user.model';
 import { UserStatus } from 'src/utils/enums/user-status.enum';
 
@@ -168,9 +169,7 @@ export class TokenService {
   async validateToken(token: string): Promise<User> {
     try {
       // 🔑 Verificar y decodificar el token
-      const decoded = verify(token, process.env.JWT_SECRET) as {
-        userId: string;
-      };
+      const decoded = verifyToken(token);
 
       if (!decoded.userId) {
         throw new UnauthorizedException('Invalid token payload');
@@ -187,7 +186,7 @@ export class TokenService {
 
       return user;
     } catch (error) {
-      console.log(error);
+      console.error(error);
       throw new UnauthorizedException('Invalid or expired token');
     }
   }

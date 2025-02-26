@@ -25,11 +25,11 @@ async function bootstrap() {
 
   const port = configService.get('PORT');
 
-  app.enableCors({
-    origin: '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
-  });
+  // app.enableCors({
+  //   origin: '*',
+  //   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  //   credentials: true,
+  // });
   await app.listen(port);
 }
 bootstrap();

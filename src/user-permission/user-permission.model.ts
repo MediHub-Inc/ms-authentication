@@ -19,11 +19,11 @@ export class UserPermission extends BaseModel {
   @ManyToMany(() => UserRole, (role) => role.permissions)
   roles: UserRole[];
 
-  @Column({ nullable: true }) // 🌟 Nuevo: Permiso a nivel de módulo
-  module?: string;
+  @Column({ type: 'uuid', nullable: true })
+  moduleId: string;
 
-  @Column({ nullable: true }) // 🌟 Nuevo: Permiso a nivel de submódulo
-  submodule?: string;
+  @Column({ type: 'uuid', nullable: true })
+  submoduleId: string;
 
   constructor(userPermission: Partial<UserPermission>) {
     super();

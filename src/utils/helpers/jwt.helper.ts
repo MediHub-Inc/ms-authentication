@@ -1,17 +1,42 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import * as jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
-
 export function generateAccessToken(userId: string) {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '1h' });
+  const privateKey = Buffer.from(
+    process.env.JWT_PRIVATE_KEY_BASE64 || '',
+    'base64',
+  ).toString('utf-8');
+
+  console.log('privateKey: ', privateKey);
+  return jwt.sign({ userId }, privateKey, {
+    algorithm: 'RS256',
+    expiresIn: process.env.JWT_EXPIRATION_TIME_ACCESS || '1h',
+  });
 }
 
 export function generateRefreshToken(userId: string) {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '1d' });
+  const privateKey = Buffer.from(
+    process.env.JWT_PRIVATE_KEY_BASE64 || '',
+    'base64',
+  ).toString('utf-8');
+
+  return jwt.sign({ userId }, privateKey, {
+    algorithm: 'RS256',
+    expiresIn: process.env.JWT_EXPIRATION_TIME_REFRESH || '7d',
+  });
 }
 
 export function verifyToken(token: string) {
-  return jwt.verify(token, JWT_SECRET);
+  const publicKey = Buffer.from(
+    process.env.JWT_PUBLIC_KEY_BASE64 || '',
+    'base64',
+  ).toString('utf-8');
+
+  return jwt.verify(token, publicKey, { algorithms: ['RS256'] }) as {
+    userId: string;
+  };
 }
 
 export const JWT_EXPIRATION_TIME = {
