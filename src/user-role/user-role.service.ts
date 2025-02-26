@@ -10,36 +10,43 @@ import { UserRole as UserRoleEnum } from '../utils/enums/user-role.enum';
 @Injectable()
 export class UserRoleService {
   constructor(
-    @InjectRepository(UserRole) private userRoleRepository: Repository<UserRole>,
-    @InjectRepository(UserPermission) private userPermissionRepository: Repository<UserPermission>,
-  ) { }
+    @InjectRepository(UserRole)
+    private userRoleRepository: Repository<UserRole>,
+    @InjectRepository(UserPermission)
+    private userPermissionRepository: Repository<UserPermission>,
+  ) {}
 
   async create(createUserRoleDto: CreateUserRoleDto) {
     console.log(createUserRoleDto);
 
     const roleName = createUserRoleDto.name as UserRoleEnum;
 
-  if (!(Object.values(UserRoleEnum) as string[]).includes(roleName)) {
-    throw new InternalServerErrorException(`Invalid UserRoleEnum value: ${roleName}`);
-  }
+    if (!(Object.values(UserRoleEnum) as string[]).includes(roleName)) {
+      throw new InternalServerErrorException(
+        `Invalid UserRoleEnum value: ${roleName}`,
+      );
+    }
 
-  const permissions = await this.userPermissionRepository.findBy({ id: In(createUserRoleDto.permissions) })
+    const permissions = await this.userPermissionRepository.findBy({
+      id: In(createUserRoleDto.permissions),
+    });
 
-  if (!permissions || permissions.length === 0) {
-    throw new InternalServerErrorException(`Invalid permissions provided`);
-  }
+    if (!permissions || permissions.length === 0) {
+      throw new InternalServerErrorException(`Invalid permissions provided`);
+    }
 
-  const createdUserRole = this.userRoleRepository.create({
-    name: roleName,
-    description: createUserRoleDto.description,
-    isActive: createUserRoleDto.isActive,
-    permissions: permissions,
-  } as DeepPartial<UserRole>);
+    const createdUserRole = this.userRoleRepository.create({
+      name: roleName,
+      description: createUserRoleDto.description,
+      isActive: createUserRoleDto.isActive,
+      permissions: permissions,
+    } as DeepPartial<UserRole>);
 
     if (!createdUserRole)
       throw new InternalServerErrorException(`User Role could not be created`);
 
-    const insertedUserRole = await this.userRoleRepository.save(createdUserRole);
+    const insertedUserRole =
+      await this.userRoleRepository.save(createdUserRole);
     if (!insertedUserRole)
       throw new InternalServerErrorException(`User Role could not be saved`);
 
@@ -50,19 +57,24 @@ export class UserRoleService {
     return this.userRoleRepository.find();
   }
   findOne(id: string) {
-    return this.userRoleRepository.findOne({ where: { id: id }, relations: ['permissions'] });
+    return this.userRoleRepository.findOne({
+      where: { id: id },
+      relations: ['permissions'],
+    });
   }
 
   async update(id: number, updateUserRoleDto: UpdateUserRoleDto) {
-    const userRole = await this.userRoleRepository.findOne({ where: { id: String(id) } });
+    const userRole = await this.userRoleRepository.findOne({
+      where: { id: String(id) },
+    });
     if (!userRole)
       throw new InternalServerErrorException(`User Role could not be found`);
 
-    const updatedData: UserRole = { 
+    const updatedData: UserRole = {
       ...updateUserRoleDto,
       permissions: updateUserRoleDto.permissions as unknown as UserPermission[],
     } as UserRole;
-    
+
     await this.userRoleRepository.update(id, updatedData);
     return this.userRoleRepository.findOne({ where: { id: String(id) } });
   }

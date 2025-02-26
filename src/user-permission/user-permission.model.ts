@@ -1,6 +1,6 @@
-import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
-import { BaseModel } from "../utils/shared/model/base.model";
-import { UserRole } from "../user-role/user-role.model";
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { BaseModel } from '../utils/shared/model/base.model';
+import { UserRole } from '../user-role/user-role.model';
 
 @Entity()
 export class UserPermission extends BaseModel {
@@ -18,6 +18,12 @@ export class UserPermission extends BaseModel {
 
   @ManyToMany(() => UserRole, (role) => role.permissions)
   roles: UserRole[];
+
+  @Column({ nullable: true }) // 🌟 Nuevo: Permiso a nivel de módulo
+  module?: string;
+
+  @Column({ nullable: true }) // 🌟 Nuevo: Permiso a nivel de submódulo
+  submodule?: string;
 
   constructor(userPermission: Partial<UserPermission>) {
     super();

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
@@ -39,10 +40,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     TokenModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    UserService,
-    UserCredentialService,
-  ],
+  providers: [AppService, UserService, UserCredentialService],
 })
 export class AppModule {}
