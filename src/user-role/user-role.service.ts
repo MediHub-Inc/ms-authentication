@@ -16,41 +16,59 @@ export class UserRoleService {
     private userPermissionRepository: Repository<UserPermission>,
   ) {}
 
-  async create(createUserRoleDto: CreateUserRoleDto) {
-    console.log(createUserRoleDto);
-
-    const roleName = createUserRoleDto.name as UserRoleEnum;
-
-    if (!(Object.values(UserRoleEnum) as string[]).includes(roleName)) {
-      throw new InternalServerErrorException(
-        `Invalid UserRoleEnum value: ${roleName}`,
-      );
+  async create(createUserRoleDtoArray: CreateUserRoleDto[]) {
+    if (
+      !Array.isArray(createUserRoleDtoArray) ||
+      createUserRoleDtoArray.length === 0
+    ) {
+      throw new InternalServerErrorException('No roles provided');
     }
 
-    const permissions = await this.userPermissionRepository.findBy({
-      id: In(createUserRoleDto.permissions),
-    });
+    const createdRoles: UserRole[] = [];
 
-    if (!permissions || permissions.length === 0) {
-      throw new InternalServerErrorException(`Invalid permissions provided`);
+    for (const createUserRoleDto of createUserRoleDtoArray) {
+      const roleName = createUserRoleDto.name as UserRoleEnum;
+
+      if (!(Object.values(UserRoleEnum) as string[]).includes(roleName)) {
+        throw new InternalServerErrorException(
+          `Invalid UserRoleEnum value: ${roleName}`,
+        );
+      }
+
+      const permissions = await this.userPermissionRepository.findBy({
+        id: In(createUserRoleDto.permissions),
+      });
+
+      if (!permissions || permissions.length === 0) {
+        throw new InternalServerErrorException(
+          `Invalid permissions provided for role: ${roleName}`,
+        );
+      }
+
+      const createdUserRole = this.userRoleRepository.create({
+        name: roleName,
+        description: createUserRoleDto.description,
+        isActive: createUserRoleDto.isActive,
+        permissions: permissions,
+      } as DeepPartial<UserRole>);
+
+      if (!createdUserRole) {
+        throw new InternalServerErrorException(
+          `User Role ${roleName} could not be created`,
+        );
+      }
+
+      createdRoles.push(createdUserRole);
     }
 
-    const createdUserRole = this.userRoleRepository.create({
-      name: roleName,
-      description: createUserRoleDto.description,
-      isActive: createUserRoleDto.isActive,
-      permissions: permissions,
-    } as DeepPartial<UserRole>);
+    // ✅ Guardar todos los roles en batch
+    const insertedUserRoles = await this.userRoleRepository.save(createdRoles);
 
-    if (!createdUserRole)
-      throw new InternalServerErrorException(`User Role could not be created`);
+    if (!insertedUserRoles || insertedUserRoles.length === 0) {
+      throw new InternalServerErrorException('User Roles could not be saved');
+    }
 
-    const insertedUserRole =
-      await this.userRoleRepository.save(createdUserRole);
-    if (!insertedUserRole)
-      throw new InternalServerErrorException(`User Role could not be saved`);
-
-    return insertedUserRole;
+    return insertedUserRoles;
   }
 
   findAll() {
@@ -59,6 +77,14 @@ export class UserRoleService {
   findOne(id: string) {
     return this.userRoleRepository.findOne({
       where: { id: id },
+      relations: ['permissions'],
+    });
+  }
+
+  findOneByName(roleName: string) {
+    console.log(roleName);
+    return this.userRoleRepository.findOne({
+      where: { name: roleName as UserRoleEnum },
       relations: ['permissions'],
     });
   }

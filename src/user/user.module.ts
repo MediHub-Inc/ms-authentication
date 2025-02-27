@@ -8,7 +8,10 @@ import { Organization } from 'src/organization/organization.model';
 import { UserCredentialModule } from 'src/user-credential/user-credential.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, UserRole, Organization]), UserCredentialModule],
+  imports: [
+    TypeOrmModule.forFeature([User, UserRole, Organization]),
+    UserCredentialModule,
+  ],
   providers: [UserService],
   controllers: [UserController],
   exports: [UserService, TypeOrmModule.forFeature([User])],

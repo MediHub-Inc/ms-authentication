@@ -34,7 +34,7 @@ export class User extends BaseModel {
   @Column({
     type: 'enum',
     enum: UserRoleEnum,
-    default: UserRoleEnum.PATIENT,
+    default: UserRoleEnum.DOCTOR,
   })
   role: UserRoleEnum;
 
