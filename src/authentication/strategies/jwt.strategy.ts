@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Injectable, UnauthorizedException } from '@nestjs/common';
@@ -17,8 +18,15 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        (request) => request?.cookies?.accessToken || null, // 🛑 Extraer desde la cookie
-        ExtractJwt.fromAuthHeaderAsBearerToken(), // 🛑 Extraer desde el Header
+        (request) => {
+          console.log('🔎 Cookie Access Token:', request?.cookies?.accessToken);
+          if (request?.cookies?.accessToken) {
+            return request?.cookies?.accessToken;
+          } // 🛑 Extraer desde la cookie
+          else {
+            return ExtractJwt.fromAuthHeaderAsBearerToken();
+          }
+        },
       ]),
       ignoreExpiration: false,
       secretOrKey: Buffer.from(
@@ -30,19 +38,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: { userId: string }) {
+    console.log('Decoded JWT Payload:', payload);
     if (!payload.userId) {
       throw new UnauthorizedException('Invalid token payload');
     }
-
-    // 🔍 Buscar el usuario en la base de datos
-    const user = await this.userRepository.findOne({
-      where: { id: payload.userId },
-    });
-
-    if (!user) {
-      throw new UnauthorizedException('User not found or inactive');
-    }
-
-    return user;
+    return { id: payload.userId };
   }
 }

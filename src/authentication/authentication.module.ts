@@ -9,7 +9,15 @@ import { Organization } from '../organization/organization.model';
 import { UserRole } from '../user-role/user-role.model';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AuthenticationCode, UserCredential, User, Organization, UserRole])],
+  imports: [
+    TypeOrmModule.forFeature([
+      AuthenticationCode,
+      UserCredential,
+      User,
+      Organization,
+      UserRole,
+    ]),
+  ],
   controllers: [AuthenticationController],
   providers: [AuthenticationService],
 })

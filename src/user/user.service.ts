@@ -95,4 +95,38 @@ export class UserService {
   async deleteUser(user: User) {
     await this.usersRepository.delete(user);
   }
+
+  async getUserProfile(userId: string) {
+    const user = await this.usersRepository
+      .createQueryBuilder('user')
+      .leftJoin('user.role', 'role') // 🔥 Unir con `role`
+      .leftJoin('user.organization', 'organization') // 🔥 Unir con `organization`
+      .select([
+        'user.id',
+        'user.firstName',
+        'user.middleName',
+        'user.familyName',
+        'user.avatar',
+        'user.createdAt',
+        'role.id', // 🔥 Solo el `id` del rol
+        'organization.id', // 🔥 Solo el `id` de la organización
+      ])
+      .where('user.id = :userId', { userId })
+      .getOne();
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return {
+      id: user.id,
+      firstName: user.firstName,
+      middleName: user.middleName,
+      familyName: user.familyName,
+      avatar: user.avatar,
+      createdAt: user.createdAt,
+      roleId: (user as any).role?.id, // 🔥 Solo el `id` del rol
+      organizationId: (user as any).organization?.id, // 🔥 Solo el `id` de la organización
+    };
+  }
 }
