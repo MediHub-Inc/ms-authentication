@@ -1,9 +1,14 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.model';
 import { UserRole } from 'src/user-role/user-role.model';
-import { UserRole as UserRoleEnum } from '../utils/enums/user-role.enum';
 import { Organization } from 'src/organization/organization.model';
 import { UserCredentialService } from 'src/user-credential/user-credential.service';
 import { UserCredential } from 'src/user-credential/user-credential.model';
@@ -11,8 +16,10 @@ import { UserCredential } from 'src/user-credential/user-credential.model';
 export class UserService {
   constructor(
     @InjectRepository(User) private usersRepository: Repository<User>,
-    @InjectRepository(UserRole) private userRoleRepository: Repository<UserRole>,
-    @InjectRepository(Organization) private organizationRepository: Repository<Organization>,
+    @InjectRepository(UserRole)
+    private userRoleRepository: Repository<UserRole>,
+    @InjectRepository(Organization)
+    private organizationRepository: Repository<Organization>,
     private userCredentialService: UserCredentialService,
   ) {}
 
@@ -43,23 +50,29 @@ export class UserService {
     });
   }
   async createUser(user: User): Promise<User> {
-    const role = await this.userRoleRepository.findOne({where: {id: user.role}});
+    const role = await this.userRoleRepository.findOne({
+      where: { id: user.role },
+    });
     if (!role) {
       throw new NotFoundException(`Role with id ${user.role} not found`);
     }
 
-    const organization = await this.organizationRepository.findOne({where: {id: (user as any).organizationId }});
+    const organization = await this.organizationRepository.findOne({
+      where: { id: (user as any).organizationId },
+    });
     if (!organization) {
-      throw new NotFoundException(`Organization with id ${user.organization.id} not found`);
+      throw new NotFoundException(
+        `Organization with id ${user.organization.id} not found`,
+      );
     }
-    user.role = role.name as UserRoleEnum;
-    user.organization = organization as Organization;
+    user.role = role.name;
+    user.organization = organization;
     const createdUser = this.usersRepository.create(user);
 
     const insertedUser = await this.usersRepository.save(createdUser);
 
     if ((user as any).username) {
-      const userCredential = await this.userCredentialService.createUserCredential({
+      await this.userCredentialService.createUserCredential({
         username: (user as any).username,
         passwordHash: (user as any).password,
         user: insertedUser,
@@ -76,10 +89,10 @@ export class UserService {
   }
 
   async updateUser(user: User) {
-    this.usersRepository.save(user);
+    await this.usersRepository.save(user);
   }
 
   async deleteUser(user: User) {
-    this.usersRepository.delete(user);
+    await this.usersRepository.delete(user);
   }
 }
