@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-enum-comparison */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
@@ -12,26 +13,39 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { AuthenticationCode } from '../authentication/authentication.model';
 import { Repository } from 'typeorm';
 import { RefreshToken } from './refresh-token.model';
-import {
-  generateAccessToken,
-  generateRefreshToken,
-  JWT_EXPIRATION_TIME,
-  verifyToken,
-} from '../utils/helpers/jwt.helper';
+import { JWT_EXPIRATION_TIME, verifyToken } from '../utils/helpers/jwt.helper';
 import { GrantType } from '../utils/enums/grant-type.enum';
 import { User } from 'src/user/user.model';
 import { UserStatus } from 'src/utils/enums/user-status.enum';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class TokenService {
+  private privateKey: string;
+  private publicKey: string;
+
   constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
     @InjectRepository(AuthenticationCode)
     private authenticationRepository: Repository<AuthenticationCode>,
     @InjectRepository(RefreshToken)
     private refreshTokenRepository: Repository<RefreshToken>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-  ) {}
+  ) {
+    this.privateKey = Buffer.from(
+      this.configService.get<string>('JWT_SIGNING_PRIVATE_KEY_BASE64') || '',
+      'base64',
+    ).toString('utf-8');
+    this.publicKey = Buffer.from(
+      this.configService.get<string>('JWT_PUBLIC_KEY_BASE64') || '',
+      'base64',
+    )
+      .toString('utf-8')
+      .trim();
+  }
 
   /**
    * ✅ Intercambiar un authenticationCode por un accessToken + refreshToken
@@ -52,8 +66,8 @@ export class TokenService {
       );
     }
 
-    const accessToken = generateAccessToken(authCode.user.id);
-    const refreshToken = generateRefreshToken(authCode.user.id);
+    const accessToken = await this.generateAccessToken(authCode.user);
+    const refreshToken = await this.generateRefreshToken(authCode.user);
 
     // ✅ Guardar el nuevo Refresh Token en la base de datos
     await this.refreshTokenRepository.save({
@@ -71,28 +85,100 @@ export class TokenService {
     return { accessToken, refreshToken };
   }
 
+  async generateAccessToken(user: User) {
+    return this.jwtService.sign(
+      { userId: user.id },
+      {
+        privateKey: this.privateKey,
+        expiresIn: this.configService.get<string>('JWT_EXPIRE') || '1h',
+        algorithm: 'RS256',
+      },
+    );
+  }
+
+  async generateRefreshToken(user: User) {
+    const refreshToken = this.jwtService.sign(
+      { userId: user.id },
+      {
+        privateKey: this.privateKey,
+        expiresIn: '7d', // Configurable en .env
+        algorithm: 'RS256',
+      },
+    );
+
+    return refreshToken;
+  }
+
+  async validateUser(userId: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('User not found or inactive');
+    }
+    return user;
+  }
+
+  async validateRefreshToken(token: string): Promise<User | null> {
+    const refreshToken = await this.refreshTokenRepository.findOne({
+      where: { token },
+      relations: ['user'],
+    });
+
+    if (!refreshToken || refreshToken.expiresAt < new Date()) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    return refreshToken.user;
+  }
+
   /**
    * ✅ Refrescar un token usando el refreshToken
    */
   async refreshToken(oldRefreshToken: string, grantType: GrantType) {
+    // 🚨 Verificar la validez del refresh token
     if (grantType !== 'refresh_token') {
       throw new BadRequestException(
         `Invalid grantType: expected "refresh_token", received "${grantType}"`,
       );
     }
+    let decodedToken;
+    try {
+      decodedToken = this.jwtService.verify(oldRefreshToken, {
+        secret: this.publicKey,
+        algorithms: ['RS256'],
+      });
 
-    // 🚨 Validar y revocar el refresh token anterior
-    const refreshToken =
-      await this.validateAndRevokeRefreshToken(oldRefreshToken);
-    if (!refreshToken) {
-      throw new UnauthorizedException(
-        'Invalid or expired refresh token. Please log in again.',
-      );
+      if (!decodedToken) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+    } catch (error) {
+      console.error('JWT Verification Error:', error);
+      throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // 🚨 Límite de usos permitidos
-    if (refreshToken.refreshCount >= 1) {
-      await this.refreshTokenRepository.update(refreshToken.id, {
+    // 🚨 Buscar el refresh token en la base de datos
+    const existingToken = await this.refreshTokenRepository.findOne({
+      where: { token: oldRefreshToken },
+      relations: ['user'],
+    });
+
+    if (!existingToken) {
+      throw new UnauthorizedException('Refresh token not found');
+    }
+
+    // ⏳ Si el token ha expirado, eliminarlo
+    if (new Date() > existingToken.expiresAt) {
+      await this.refreshTokenRepository.delete(existingToken.id);
+      throw new UnauthorizedException('Refresh token expired');
+    }
+
+    // 🚨 Si el token ya fue revocado, rechazarlo
+    if (existingToken.revokedAt) {
+      throw new UnauthorizedException('Refresh token has already been used.');
+    }
+
+    // 🚨 Si el refresh token ya se usó una vez, evitar su reutilización
+    if (existingToken.refreshCount >= 1) {
+      await this.refreshTokenRepository.update(existingToken.id, {
         revokedAt: new Date(),
       });
       throw new UnauthorizedException(
@@ -100,13 +186,14 @@ export class TokenService {
       );
     }
 
-    // ✅ Incrementar el contador de uso
-    await this.refreshTokenRepository.update(refreshToken.id, {
-      refreshCount: refreshToken.refreshCount + 1,
+    // 🛑 Revocar el refresh token inmediatamente (One-Time Usage)
+    await this.refreshTokenRepository.update(existingToken.id, {
+      revokedAt: new Date(),
+      refreshCount: existingToken.refreshCount + 1, // Incrementar el uso
     });
 
     // ✅ Generar solo un nuevo **Access Token**, pero NO un nuevo Refresh Token
-    const newAccessToken = generateAccessToken(refreshToken.user.id);
+    const newAccessToken = await this.generateAccessToken(existingToken.user);
 
     return { accessToken: newAccessToken };
   }
@@ -140,28 +227,28 @@ export class TokenService {
     return existingToken;
   }
 
-  async generateNewTokens(userId: string) {
-    // 🔐 Generar nuevo Access Token
-    const newAccessToken = generateAccessToken(userId);
+  // async generateNewTokens(userId: string) {
+  //   // 🔐 Generar nuevo Access Token
+  //   const newAccessToken = generateAccessToken(userId);
 
-    // 🔐 Generar nuevo Refresh Token
-    const newRefreshToken = generateRefreshToken(userId);
+  //   // 🔐 Generar nuevo Refresh Token
+  //   const newRefreshToken = generateRefreshToken(userId);
 
-    // 💾 Guardar el nuevo Refresh Token en la base de datos
-    const savedRefreshToken = await this.refreshTokenRepository.save({
-      token: newRefreshToken,
-      user: { id: userId }, // Asociar el token con el usuario
-      expiresIn: JWT_EXPIRATION_TIME.REFRESH_TOKEN, // Tiempo de vida en segundos
-      expiresAt: new Date(
-        Date.now() + JWT_EXPIRATION_TIME.REFRESH_TOKEN * 1000,
-      ),
-    });
+  //   // 💾 Guardar el nuevo Refresh Token en la base de datos
+  //   const savedRefreshToken = await this.refreshTokenRepository.save({
+  //     token: newRefreshToken,
+  //     user: { id: userId }, // Asociar el token con el usuario
+  //     expiresIn: JWT_EXPIRATION_TIME.REFRESH_TOKEN, // Tiempo de vida en segundos
+  //     expiresAt: new Date(
+  //       Date.now() + JWT_EXPIRATION_TIME.REFRESH_TOKEN * 1000,
+  //     ),
+  //   });
 
-    return {
-      accessToken: newAccessToken,
-      refreshToken: savedRefreshToken.token,
-    };
-  }
+  //   return {
+  //     accessToken: newAccessToken,
+  //     refreshToken: savedRefreshToken.token,
+  //   };
+  // }
 
   /**
    * ✅ Valida el token JWT y retorna el usuario autenticado

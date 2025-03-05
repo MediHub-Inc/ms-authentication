@@ -2,7 +2,8 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { UserRole as UserRoleEnum } from '../utils/enums/user-role.enum';
 import { BaseModel } from '../utils/shared/model/base.model';
 import { UserPermission } from '../user-permission/user-permission.model';
-import { ManyToMany, JoinTable } from 'typeorm';
+import { ManyToMany, JoinTable, OneToMany } from 'typeorm';
+import { User } from '../user/user.model';
 
 @Entity()
 export class UserRole extends BaseModel {
@@ -34,6 +35,9 @@ export class UserRole extends BaseModel {
     },
   })
   permissions: UserPermission[];
+
+  @OneToMany(() => User, (user) => user.role)
+  users: User[];
 
   constructor(userRole: Partial<UserRole>) {
     super();

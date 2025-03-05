@@ -5,9 +5,18 @@ import { RefreshToken } from './refresh-token.model';
 import { AuthenticationCode } from '../authentication/authentication.model';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../user/user.model';
+import { PassportModule } from '@nestjs/passport';
+import { JwtModule } from '@nestjs/jwt';
+import { JwtStrategy } from '../authentication/strategies/jwt.strategy';
+
 @Module({
-  imports: [TypeOrmModule.forFeature([AuthenticationCode, RefreshToken, User])],
+  imports: [
+    TypeOrmModule.forFeature([AuthenticationCode, RefreshToken, User]),
+    PassportModule.register({ defaultStrategy: 'jwt' }),
+    JwtModule.register({}),
+  ],
   controllers: [TokenController],
-  providers: [TokenService],
+  providers: [TokenService, JwtStrategy],
+  exports: [TokenService, JwtStrategy, PassportModule],
 })
 export class TokenModule {}

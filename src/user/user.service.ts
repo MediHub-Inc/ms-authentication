@@ -51,10 +51,10 @@ export class UserService {
   }
   async createUser(user: User): Promise<User> {
     const role = await this.userRoleRepository.findOne({
-      where: { id: user.role },
+      where: { id: String(user.role.id) },
     });
     if (!role) {
-      throw new NotFoundException(`Role with id ${user.role} not found`);
+      throw new NotFoundException(`Role with id ${user.role.id} not found`);
     }
 
     const organization = await this.organizationRepository.findOne({
@@ -65,7 +65,7 @@ export class UserService {
         `Organization with id ${user.organization.id} not found`,
       );
     }
-    user.role = role.name;
+    user.role = role;
     user.organization = organization;
     const createdUser = this.usersRepository.create(user);
 

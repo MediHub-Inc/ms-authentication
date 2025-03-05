@@ -110,7 +110,7 @@ export class AuthenticationService {
       avatar: signupDto.avatar,
       status: signupDto.status,
       organization,
-      role: role.name,
+      role: role,
     });
 
     // Crear usuario creds

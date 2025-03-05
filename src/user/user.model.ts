@@ -1,5 +1,5 @@
+import { UserRole } from 'src/user-role/user-role.model';
 import { Organization } from '../organization/organization.model';
-import { UserRole as UserRoleEnum } from '../utils/enums/user-role.enum';
 import { UserStatus } from '../utils/enums/user-status.enum';
 import { BaseModel } from '../utils/shared/model/base.model';
 import {
@@ -31,12 +31,12 @@ export class User extends BaseModel {
   @Column({ length: 25, nullable: true })
   middleName?: string;
 
-  @Column({
-    type: 'enum',
-    enum: UserRoleEnum,
-    default: UserRoleEnum.DOCTOR,
+  @ManyToOne(() => UserRole, (role) => role.users, {
+    nullable: false,
+    onDelete: 'CASCADE',
   })
-  role: UserRoleEnum;
+  @JoinColumn()
+  role: UserRole;
 
   @Column({ length: 120, nullable: true })
   avatar?: string;
