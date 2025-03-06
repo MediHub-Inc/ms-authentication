@@ -39,7 +39,7 @@ export class TokenController {
     res.cookie('accessToken', tokens.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
+      sameSite: 'lax',
       domain: 'localhost',
       maxAge: JWT_EXPIRATION_TIME_IN_MS.ACCESS_TOKEN, // 1 hora en milisegundos
     });
@@ -47,7 +47,7 @@ export class TokenController {
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
+      sameSite: 'lax',
       domain: 'localhost',
       maxAge: JWT_EXPIRATION_TIME_IN_MS.REFRESH_TOKEN, // 1 día en milisegundos
     });
@@ -87,7 +87,7 @@ export class TokenController {
       res.cookie('accessToken', tokens.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'none',
+        sameSite: 'lax',
         domain: 'localhost',
         maxAge: JWT_EXPIRATION_TIME_IN_MS.ACCESS_TOKEN, // 1 hora
       });
