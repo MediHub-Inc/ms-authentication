@@ -45,8 +45,8 @@ export class UserService {
 
   async getUser(_id: number): Promise<User[]> {
     return await this.usersRepository.find({
-      select: ['firstName', 'familyName', 'middleName', 'status'],
       where: [{ id: String(_id) }],
+      relations: ['role', 'organization'],
     });
   }
   async createUser(user: User): Promise<User> {

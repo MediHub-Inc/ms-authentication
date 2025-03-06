@@ -24,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
             return request?.cookies?.accessToken;
           } // 🛑 Extraer desde la cookie
           else {
-            return ExtractJwt.fromAuthHeaderAsBearerToken();
+            return ExtractJwt.fromAuthHeaderAsBearerToken()(request);
           }
         },
       ]),

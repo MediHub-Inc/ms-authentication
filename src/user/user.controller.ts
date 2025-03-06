@@ -27,6 +27,7 @@ export class UserController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard) // 🔒 Protege el endpoint con JWT
   get(@Param() params) {
     return this.userService.getUser(params.id);
   }
