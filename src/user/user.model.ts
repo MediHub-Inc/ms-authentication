@@ -13,20 +13,20 @@ import {
 @Entity()
 export class User extends BaseModel {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ManyToOne(() => Organization, (organization) => organization.users, {
     nullable: false,
     onDelete: 'CASCADE',
   })
   @JoinColumn()
-  organization: Organization;
+  organization!: Organization;
 
   @Column({ length: 25 })
-  firstName: string;
+  firstName!: string;
 
   @Column({ length: 25 })
-  familyName: string;
+  familyName!: string;
 
   @Column({ length: 25, nullable: true })
   middleName?: string;
@@ -36,7 +36,7 @@ export class User extends BaseModel {
     onDelete: 'CASCADE',
   })
   @JoinColumn()
-  role: UserRole;
+  role!: UserRole;
 
   @Column({ length: 120, nullable: true })
   avatar?: string;
@@ -46,5 +46,5 @@ export class User extends BaseModel {
     enum: UserStatus,
     default: UserStatus.ACTIVE,
   })
-  status: UserStatus;
+  status!: UserStatus;
 }

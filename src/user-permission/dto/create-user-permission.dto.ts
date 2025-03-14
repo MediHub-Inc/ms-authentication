@@ -1,15 +1,15 @@
-import { IsString, IsBoolean, IsNotEmpty } from "class-validator";
+import { IsString, IsBoolean, IsNotEmpty } from 'class-validator';
 
 export class CreateUserPermissionDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsString()
   @IsNotEmpty()
-  description: string;
+  description!: string;
 
   @IsBoolean()
   @IsNotEmpty()
-  isActive: boolean;
+  isActive!: boolean;
 }

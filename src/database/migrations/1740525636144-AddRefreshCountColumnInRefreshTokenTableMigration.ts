@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class AddRefreshCountColumnInRefreshTokenTableMigration1740525636144
   implements MigrationInterface

@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/require-await */
 import { Controller, Post, Body, Res, Get } from '@nestjs/common';
 import { AuthenticationService } from './authentication.service';
 import { SignUpDto } from './dto/signup.dto';
 import { AuthenticateDto } from './dto/authenticate.dto';
-import { Response } from 'express';
+import type { Response } from 'express';
 @Controller('authenticate')
 export class AuthenticationController {
   constructor(private authService: AuthenticationService) {}

@@ -5,25 +5,25 @@ import { UserRole } from '../user-role/user-role.model';
 @Entity()
 export class UserPermission extends BaseModel {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ unique: true })
-  name: string;
+  name!: string;
 
   @Column({ type: 'text' })
-  description: string;
+  description!: string;
 
   @Column({ default: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @ManyToMany(() => UserRole, (role) => role.permissions)
-  roles: UserRole[];
+  roles!: UserRole[];
 
   @Column({ type: 'uuid', nullable: true })
-  moduleId: string;
+  moduleId!: string;
 
   @Column({ type: 'uuid', nullable: true })
-  submoduleId: string;
+  submoduleId!: string;
 
   constructor(userPermission: Partial<UserPermission>) {
     super();

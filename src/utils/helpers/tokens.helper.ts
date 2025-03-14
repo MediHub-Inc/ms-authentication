@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Response } from 'express';
+import type { Response } from 'express';
 import { getExpiresInFromJwt } from './expires-in.helper';
 
 export const setTokenInCookies = (tokenData, res: Response) => {

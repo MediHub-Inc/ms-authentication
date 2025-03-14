@@ -1,35 +1,62 @@
 // @ts-check
-import eslint from '@eslint/js';
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
-import globals from 'globals';
-import tseslint from 'typescript-eslint';
+import js from '@eslint/js'
+import globals from 'globals'
+import tseslint from 'typescript-eslint'
+import tsParser from '@typescript-eslint/parser'
+import unusedImportsPlugin from 'eslint-plugin-unused-imports'
+import airbnbBase from 'eslint-config-airbnb-base'
+import airbnbBaseTs from 'eslint-config-airbnb-base-typescript'
 
-export default tseslint.config(
+export default [
   {
-    ignores: ['eslint.config.mjs'],
+    ignores: ['**/dist/**', '**/node_modules/**, **/src/database/migrations/**'],
   },
-  eslint.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked,
-  eslintPluginPrettierRecommended,
+
+  js.configs.recommended,
+
   {
+    files: ['**/*.{js,ts,mjs,cjs}'],
     languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+        project: true,
+      },
       globals: {
         ...globals.node,
+        ...globals.browser,
         ...globals.jest,
       },
-      ecmaVersion: 5,
-      sourceType: 'module',
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
+    },
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+      'unused-imports': unusedImportsPlugin,
+    },
+    rules: {
+      // Reglas base de Airbnb
+      ...airbnbBase.rules,
+      ...airbnbBaseTs.rules,
+
+      // Personalizaciones
+      'no-unused-vars': 'off',
+      'unused-imports/no-unused-vars': [
+        'warn',
+        {
+          vars: 'all',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
+          argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+    },
+    settings: {
+      'import/resolver': {
+        node: {
+          extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        },
       },
     },
   },
-  {
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn'
-    },
-  },
-);
+]
