@@ -10,8 +10,8 @@ import { Repository } from 'typeorm';
 import { RefreshToken } from './refresh-token.model';
 import { JWT_EXPIRATION_TIME, verifyToken } from '../utils/helpers/jwt.helper';
 import { GrantType } from '../utils/enums/grant-type.enum';
-import { User } from 'src/user/user.model';
-import { UserStatus } from 'src/utils/enums/user-status.enum';
+import { User } from '../user/user.model';
+import { UserStatus } from '../utils/enums/user-status.enum';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 

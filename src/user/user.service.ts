@@ -6,10 +6,10 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.model';
-import { UserRole } from 'src/user-role/user-role.model';
-import { Organization } from 'src/organization/organization.model';
-import { UserCredentialService } from 'src/user-credential/user-credential.service';
-import { UserCredential } from 'src/user-credential/user-credential.model';
+import { UserRole } from '../user-role/user-role.model';
+import { Organization } from '../organization/organization.model';
+import { UserCredentialService } from '../user-credential/user-credential.service';
+import { UserCredential } from '../user-credential/user-credential.model';
 @Injectable()
 export class UserService {
   constructor(

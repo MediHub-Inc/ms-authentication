@@ -1,4 +1,4 @@
-import { UserRole } from 'src/user-role/user-role.model';
+import { UserRole } from '../user-role/user-role.model';
 import { Organization } from '../organization/organization.model';
 import { UserStatus } from '../utils/enums/user-status.enum';
 import { BaseModel } from '../utils/shared/model/base.model';

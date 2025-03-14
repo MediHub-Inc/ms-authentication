@@ -12,7 +12,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { type Response, type Request } from 'express';
 import { TokenService } from './token.service';
-import { JWT_EXPIRATION_TIME_IN_MS } from 'src/utils/helpers/jwt.helper';
+import { JWT_EXPIRATION_TIME_IN_MS } from '../utils/helpers/jwt.helper';
 import { GrantType } from '../utils/enums/grant-type.enum';
 @Controller('token')
 export class TokenController {

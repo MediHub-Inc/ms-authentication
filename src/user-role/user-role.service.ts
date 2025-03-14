@@ -4,7 +4,7 @@ import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { UserRole } from './user-role.model';
 import { type DeepPartial, In, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { UserPermission } from 'src/user-permission/user-permission.model';
+import { UserPermission } from '../user-permission/user-permission.model';
 import { UserRole as UserRoleEnum } from '../utils/enums/user-role.enum';
 
 @Injectable()
