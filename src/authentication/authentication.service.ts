@@ -32,13 +32,23 @@ export class AuthenticationService {
 
   async authenticate(authenticateDto: AuthenticateDto) {
     const { username, email, password } = authenticateDto;
-    const nonDisabledUser = await this.userCredentialRepository.findOne({
-      where: [
-        { username, user: { status: UserStatus.ACTIVE } }, // Si coincide el username
-        { email, user: { status: UserStatus.ACTIVE } }, // O si coincide el email
-      ],
-      relations: ['user'],
-    });
+    const qb = this.userCredentialRepository
+      .createQueryBuilder('cred')
+      .leftJoinAndSelect('cred.user', 'user')
+      .where('cred.username = :username OR cred.email = :email', {
+        username,
+        email,
+      })
+      .andWhere('user.status = :status', { status: UserStatus.ACTIVE });
+
+    const nonDisabledUser = await qb.getOne();
+    // const nonDisabledUser = await this.userCredentialRepository.findOne({
+    //   where: [
+    //     { username }, // Si coincide el username
+    //     { email }, // O si coincide el email
+    //   ],
+    //   relations: ['user'],
+    // });
 
     if (!nonDisabledUser)
       throw new NotFoundException(`User with username ${username} not found!`);
@@ -47,8 +57,6 @@ export class AuthenticationService {
       password,
       nonDisabledUser.passwordHash,
     );
-
-    console.log('nonDisabledUser: ', !nonDisabledUser || !passwordMatch);
 
     if (!nonDisabledUser || !passwordMatch) {
       throw new NotFoundException('Invalid username or password');
