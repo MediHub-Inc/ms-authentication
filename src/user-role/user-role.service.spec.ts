@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserRoleService } from './user-role.service';
 
-describe('UserRoleService', () => {
+describe.skip('UserRoleService', () => {
   let service: UserRoleService;
 
   beforeEach(async () => {

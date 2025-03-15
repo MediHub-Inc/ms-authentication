@@ -10,26 +10,26 @@ import {
 @Entity()
 export class RefreshToken {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'varchar', length: 512, unique: true })
-  token: string;
+  token!: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  user: User;
+  user!: User;
 
   @Column()
-  expiresIn: number;
+  expiresIn!: number;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @Column({ type: 'timestamp' })
-  expiresAt: Date;
+  expiresAt!: Date;
 
   @Column({ type: 'timestamp', nullable: true })
   revokedAt?: Date;
 
   @Column({ type: 'int', default: 0 })
-  refreshCount: number;
+  refreshCount!: number;
 }

@@ -11,7 +11,7 @@ import {
 @Entity()
 export class UserCredential extends BaseModel {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @OneToOne(() => User, {
     cascade: true,
@@ -19,24 +19,24 @@ export class UserCredential extends BaseModel {
     onDelete: 'CASCADE',
   })
   @JoinColumn()
-  user: User;
+  user!: User;
 
   @Column({ length: 25 })
-  username: string;
+  username!: string;
 
   @Column({ length: 255 })
-  email: string;
+  email!: string;
   @Column({ length: 255 })
-  passwordHash: string;
+  passwordHash!: string;
 
   @Column({ length: 255, nullable: true })
-  passwordResetHash: string;
+  passwordResetHash!: string;
 
   @Column({ type: 'datetime', nullable: true })
-  lastLogin: string;
+  lastLogin!: string;
 
   @Column({ type: 'datetime', nullable: true })
-  passwordResetExpirationDate: string;
+  passwordResetExpirationDate!: string;
 
   constructor(userCredential: UserCredential) {
     super();

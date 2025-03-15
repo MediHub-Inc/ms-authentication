@@ -1,4 +1,4 @@
-import { User } from 'src/user/user.model';
+import { User } from '../user/user.model';
 import {
   Entity,
   Column,
@@ -10,17 +10,17 @@ import {
 @Entity()
 export class AuthenticationCode {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ unique: true })
-  code: string;
+  code!: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
-  user: User;
+  user!: User;
 
   @Column()
-  grantType: string;
+  grantType!: string;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 }

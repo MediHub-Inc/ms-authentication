@@ -1,8 +1,3 @@
-/* eslint-disable @typescript-eslint/require-await */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import {
   Controller,
   Body,
@@ -15,9 +10,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { Response, Request } from 'express';
+import { type Response, type Request } from 'express';
 import { TokenService } from './token.service';
-import { JWT_EXPIRATION_TIME_IN_MS } from 'src/utils/helpers/jwt.helper';
+import { JWT_EXPIRATION_TIME_IN_MS } from '../utils/helpers/jwt.helper';
 import { GrantType } from '../utils/enums/grant-type.enum';
 @Controller('token')
 export class TokenController {
@@ -94,8 +89,6 @@ export class TokenController {
 
       return { message: 'Access token refreshed' };
     } catch (error) {
-      console.error('Refresh Token Error:', error.message);
-
       // 🚨 Revocar las cookies si el refresh token ya no es válido (One-Time Usage)
       res.clearCookie('accessToken', { domain: 'localhost' });
       res.clearCookie('refreshToken', { domain: 'localhost' });

@@ -8,19 +8,19 @@ import { User } from '../user/user.model';
 @Entity()
 export class UserRole extends BaseModel {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({
     type: 'enum',
     enum: UserRoleEnum,
   })
-  name: UserRoleEnum;
+  name!: UserRoleEnum;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description!: string;
 
   @Column({ type: 'boolean', nullable: true })
-  isActive: boolean;
+  isActive!: boolean;
 
   @ManyToMany(() => UserPermission, (permission) => permission.roles)
   @JoinTable({
@@ -34,10 +34,10 @@ export class UserRole extends BaseModel {
       referencedColumnName: 'id',
     },
   })
-  permissions: UserPermission[];
+  permissions!: UserPermission[];
 
   @OneToMany(() => User, (user) => user.role)
-  users: User[];
+  users!: User[];
 
   constructor(userRole: Partial<UserRole>) {
     super();
