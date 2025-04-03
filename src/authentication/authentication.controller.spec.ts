@@ -2,11 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { AuthenticationController } from './authentication.controller';
 import { AuthenticationService } from './authentication.service';
-import { AuthenticationCode } from './authentication.model';
-import { UserCredential } from '../user-credential/user-credential.model';
-import { User } from '../user/user.model';
-import { Organization } from '../organization/organization.model';
-import { UserRole } from '../user-role/user-role.model';
+import { AuthenticationCode } from './authentication-code.schema';
+import { UserCredential } from '../user-credential/user-credential.schema';
+import { User } from '../user/user.schema';
+import { Organization } from '../organization/organization.schema';
+import { UserRole } from '../user-role/user-role.schema';
 
 describe.skip('AuthenticationController', () => {
   let controller: AuthenticationController;

@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
@@ -14,21 +13,18 @@ import { AppConfig, DatabaseConfig } from './config';
 import { AuthenticationModule } from './authentication/authentication.module';
 import { TokenModule } from './token/token.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   imports: [
+    MongooseModule.forRoot(
+      process.env.MONGO_URI || 'mongodb://localhost/medihub',
+    ),
     ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
       load: [AppConfig, DatabaseConfig],
-    }),
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        ...configService.get('database'),
-      }),
-      inject: [ConfigService],
     }),
     UserModule,
     UserCredentialModule,
@@ -39,6 +35,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     TokenModule,
   ],
   controllers: [AppController],
-  providers: [AppService, UserService, UserCredentialService],
+  providers: [AppService],
 })
 export class AppModule {}

@@ -3,73 +3,75 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
 import { randomBytes } from 'crypto';
-import { AuthenticationCode } from './authentication.model';
-import { UserCredential } from '../user-credential/user-credential.model';
-import { User } from '../user/user.model';
-import { SignUpDto } from './dto/signup.dto';
 import * as bcrypt from 'bcrypt';
-import { Organization } from '../organization/organization.model';
+
+import { AuthenticationCode } from './authentication-code.schema';
+import { UserCredential } from '../user-credential/user-credential.schema';
+import { User } from '../user/user.schema';
+import { SignUpDto } from './dto/signup.dto';
+import { Organization } from '../organization/organization.schema';
 import { UserStatus } from '../utils/enums/user-status.enum';
-import { UserRole } from '../user-role/user-role.model';
+import { UserRole } from '../user-role/user-role.schema';
 import { AuthenticateDto } from './dto/authenticate.dto';
+
 @Injectable()
 export class AuthenticationService {
   constructor(
-    @InjectRepository(AuthenticationCode)
-    private authenticationRepository: Repository<AuthenticationCode>,
-    @InjectRepository(UserCredential)
-    private userCredentialRepository: Repository<UserCredential>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
-    @InjectRepository(Organization)
-    private organizationRepository: Repository<Organization>,
-    @InjectRepository(UserRole)
-    private roleRepository: Repository<UserRole>,
+    @InjectModel(AuthenticationCode.name)
+    private authenticationModel: Model<AuthenticationCode>,
+
+    @InjectModel(UserCredential.name)
+    private userCredentialModel: Model<UserCredential>,
+
+    @InjectModel(User.name)
+    private userModel: Model<User>,
+
+    @InjectModel(Organization.name)
+    private organizationModel: Model<Organization>,
+
+    @InjectModel(UserRole.name)
+    private roleModel: Model<UserRole>,
   ) {}
 
   async authenticate(authenticateDto: AuthenticateDto) {
     const { username, email, password } = authenticateDto;
-    const qb = this.userCredentialRepository
-      .createQueryBuilder('cred')
-      .leftJoinAndSelect('cred.user', 'user')
-      .where('cred.username = :username OR cred.email = :email', {
-        username,
-        email,
+
+    const nonDisabledUser = await this.userCredentialModel
+      .findOne({
+        $or: [{ username }, { email }],
       })
-      .andWhere('user.status = :status', { status: UserStatus.ACTIVE });
+      .populate<{ user: User }>('user');
 
-    const nonDisabledUser = await qb.getOne();
-    // const nonDisabledUser = await this.userCredentialRepository.findOne({
-    //   where: [
-    //     { username }, // Si coincide el username
-    //     { email }, // O si coincide el email
-    //   ],
-    //   relations: ['user'],
-    // });
-
-    if (!nonDisabledUser)
-      throw new NotFoundException(`User with username ${username} not found!`);
+    if (
+      !nonDisabledUser ||
+      !nonDisabledUser.user ||
+      nonDisabledUser.user.status !== UserStatus.ACTIVE
+    ) {
+      throw new NotFoundException(
+        `User with username ${username} not found or inactive`,
+      );
+    }
 
     const passwordMatch = await bcrypt.compare(
       password,
       nonDisabledUser.passwordHash,
     );
 
-    if (!nonDisabledUser || !passwordMatch) {
+    if (!passwordMatch) {
       throw new NotFoundException('Invalid username or password');
     }
 
     const code = randomBytes(32).toString('hex');
-    const authenticationCode = this.authenticationRepository.create({
-      user: nonDisabledUser.user,
+    const authenticationCode = new this.authenticationModel({
+      user: nonDisabledUser.user._id,
       code,
       grantType: 'authentication',
     });
 
-    await this.authenticationRepository.save(authenticationCode);
+    await authenticationCode.save();
 
     return { authenticationCode: code, grantType: 'authentication' };
   }
@@ -79,61 +81,59 @@ export class AuthenticationService {
   ): Promise<{ message: string; data: UserCredential }> {
     const { username, email, password } = signupDto;
 
-    // Validar si el usuario ya existe
-    const existingUser = await this.userCredentialRepository.findOne({
-      where: { username },
-    });
-    if (existingUser) throw new ConflictException('Username already taken');
+    // Verificar existencia por username
+    const existingUser = await this.userCredentialModel.findOne({ username });
+    if (existingUser) {
+      throw new ConflictException('Username already taken');
+    }
 
+    // Verificar existencia por email
     if (email) {
-      const existingEmail = await this.userCredentialRepository.findOne({
-        where: { email },
-      });
-      if (existingEmail)
+      const existingEmail = await this.userCredentialModel.findOne({ email });
+      if (existingEmail) {
         throw new ConflictException('Email already registered');
+      }
+    }
+
+    // Validar organización
+    const organization = await this.organizationModel.findById(
+      signupDto.organizationId,
+    );
+    if (!organization) {
+      throw new NotFoundException('Organization not found');
+    }
+
+    // Validar rol
+    const role = await this.roleModel.findById(signupDto.role);
+    if (!role) {
+      throw new NotFoundException('Role not found');
     }
 
     // Hashear contraseña
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const organization = await this.organizationRepository.findOne({
-      where: { id: signupDto.organizationId },
-    });
-    if (!organization) throw new NotFoundException('Organization not found');
-
-    const role = await this.roleRepository.findOne({
-      where: { id: signupDto.role },
-    });
-    if (!role) throw new NotFoundException('Role not found');
-
-    // Create user
-    const user = this.userRepository.create({
+    // Crear usuario
+    const user = await this.userModel.create({
       firstName: signupDto.firstName,
       familyName: signupDto.familyName,
       middleName: signupDto.middleName,
       avatar: signupDto.avatar,
-      status: signupDto.status,
-      organization,
-      role: role,
+      status: signupDto.status || UserStatus.ACTIVE,
+      organizationId: organization._id,
+      roleId: role._id,
     });
 
-    // Crear usuario creds
-    const userCredential = this.userCredentialRepository.create({
+    // Crear credenciales del usuario
+    const userCredential = await this.userCredentialModel.create({
       username,
       email,
       passwordHash: hashedPassword,
-      user,
+      user: user._id,
     });
-
-    const createdUserCredential =
-      await this.userCredentialRepository.save(userCredential);
 
     return {
       message: 'User registered successfully',
-      data: {
-        ...createdUserCredential,
-      },
+      data: userCredential,
     };
   }
 }

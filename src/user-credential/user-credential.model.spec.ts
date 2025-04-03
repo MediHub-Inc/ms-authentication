@@ -1,4 +1,4 @@
-import { UserCredential } from './user-credential.model';
+import { UserCredential } from './user-credential.schema';
 
 describe.skip('UserCredential', () => {
   it('should be defined', () => {

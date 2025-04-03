@@ -9,7 +9,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { User } from './user.model';
+import { User } from './user.schema';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 

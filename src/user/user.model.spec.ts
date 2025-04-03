@@ -1,4 +1,4 @@
-import { User } from './user.model';
+import { User } from './user.schema';
 
 describe.skip('User', () => {
   it('should be defined', () => {

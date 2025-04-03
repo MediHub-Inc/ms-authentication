@@ -2,27 +2,23 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../../user/user.model';
+import { InjectModel } from '@nestjs/mongoose';
+import { User } from '../../user/user.schema';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
     private readonly configService: ConfigService,
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request) => {
-          console.log('🔎 Cookie Access Token:', request?.cookies?.accessToken);
-          if (request?.cookies?.accessToken) {
-            return request?.cookies?.accessToken;
-          } // 🛑 Extraer desde la cookie
-          else {
-            return ExtractJwt.fromAuthHeaderAsBearerToken()(request);
-          }
+          const token = request?.cookies?.accessToken;
+          if (token) return token;
+          return ExtractJwt.fromAuthHeaderAsBearerToken()(request);
         },
       ]),
       ignoreExpiration: false,
@@ -35,10 +31,16 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: { userId: string }) {
-    console.log('Decoded JWT Payload:', payload);
     if (!payload.userId) {
       throw new UnauthorizedException('Invalid token payload');
     }
-    return { id: payload.userId };
+
+    const user = await this.userModel.findById(payload.userId);
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    return { id: user._id, status: user.status }; // Puedes devolver más campos si necesitas
   }
 }

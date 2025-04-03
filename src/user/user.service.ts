@@ -3,128 +3,128 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from './user.model';
-import { UserRole } from '../user-role/user-role.model';
-import { Organization } from '../organization/organization.model';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { User } from './user.schema';
+import { UserRole } from '../user-role/user-role.schema';
+import { Organization } from '../organization/organization.schema';
 import { UserCredentialService } from '../user-credential/user-credential.service';
-import { UserCredential } from '../user-credential/user-credential.model';
+import { UserCredential } from '../user-credential/user-credential.schema';
+
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(User) private usersRepository: Repository<User>,
-    @InjectRepository(UserRole)
-    private userRoleRepository: Repository<UserRole>,
-    @InjectRepository(Organization)
-    private organizationRepository: Repository<Organization>,
-    private userCredentialService: UserCredentialService,
+    @InjectModel(User.name)
+    private readonly usersModel: Model<User>,
+
+    @InjectModel(UserRole.name)
+    private readonly userRoleModel: Model<UserRole>,
+
+    @InjectModel(Organization.name)
+    private readonly organizationModel: Model<Organization>,
+
+    private readonly userCredentialService: UserCredentialService,
   ) {}
 
   async getUsers(): Promise<User[]> {
-    return await this.usersRepository.find();
+    return this.usersModel.find().exec();
   }
 
-  async getUserById(id: number): Promise<User> {
-    const user = await this.usersRepository.findOne({
-      where: [
-        {
-          id: String(id),
-        },
-      ],
-    });
-
+  async getUserById(id: string): Promise<User> {
+    const user = await this.usersModel.findById(id).exec();
     if (!user) {
       throw new NotFoundException(`User with id ${id} not found`);
     }
-
     return user;
   }
 
-  async getUser(_id: number): Promise<User[]> {
-    return await this.usersRepository.find({
-      where: [{ id: String(_id) }],
-      relations: ['role', 'organization'],
-    });
+  async getUser(id: string): Promise<User[]> {
+    return this.usersModel
+      .find({ _id: id })
+      .populate('role organization')
+      .exec();
   }
-  async createUser(user: User): Promise<User> {
-    const role = await this.userRoleRepository.findOne({
-      where: { id: String(user.role.id) },
-    });
-    if (!role) {
-      throw new NotFoundException(`Role with id ${user.role.id} not found`);
+
+  async createUser(
+    user: Partial<User> & { username?: string; password?: string },
+  ): Promise<User> {
+    if (!user.roleId) {
+      throw new NotFoundException(`Role ID is required`);
     }
 
-    const organization = await this.organizationRepository.findOne({
-      where: { id: (user as any).organizationId },
-    });
+    if (!user.organizationId) {
+      throw new NotFoundException(`Organization ID is required`);
+    }
+
+    const role = await this.userRoleModel.findById(user.roleId);
+    if (!role) {
+      throw new NotFoundException(`Role with id ${user.roleId} not found`);
+    }
+
+    const organization = await this.organizationModel.findById(
+      user.organizationId,
+    );
     if (!organization) {
       throw new NotFoundException(
-        `Organization with id ${user.organization.id} not found`,
+        `Organization with id ${user.organizationId} not found`,
       );
     }
-    user.role = role;
-    user.organization = organization;
-    const createdUser = this.usersRepository.create(user);
 
-    const insertedUser = await this.usersRepository.save(createdUser);
+    const createdUser = await this.usersModel.create({
+      ...user,
+      roleId: role._id,
+      organizationId: organization._id,
+    });
 
-    if ((user as any).username) {
+    if (user.username && user.password) {
       await this.userCredentialService.createUserCredential({
-        username: (user as any).username,
-        passwordHash: (user as any).password,
-        user: insertedUser,
-        lastLogin: new Date().toString(),
-        createdAt: new Date().toString(),
-        updatedAt: new Date().toString(),
+        username: user.username,
+        passwordHash: user.password,
+        user: createdUser._id,
+        lastLogin: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
         passwordResetHash: '',
         passwordResetExpirationDate: '',
-      } as UserCredential);
+      } as unknown as UserCredential);
     }
-    if (!insertedUser)
-      throw new InternalServerErrorException(`User could not be save`);
+
     return createdUser;
   }
 
-  async updateUser(user: User) {
-    await this.usersRepository.save(user);
+  async updateUser(user: User): Promise<void> {
+    await this.usersModel.updateOne({ _id: user._id }, user).exec();
   }
 
-  async deleteUser(user: User) {
-    await this.usersRepository.delete(user);
+  async deleteUser(user: User): Promise<void> {
+    await this.usersModel.deleteOne({ _id: user._id }).exec();
   }
 
   async getUserProfile(userId: string) {
-    const user = await this.usersRepository
-      .createQueryBuilder('user')
-      .leftJoin('user.role', 'role') // 🔥 Unir con `role`
-      .leftJoin('user.organization', 'organization') // 🔥 Unir con `organization`
-      .select([
-        'user.id',
-        'user.firstName',
-        'user.middleName',
-        'user.familyName',
-        'user.avatar',
-        'user.createdAt',
-        'role.id', // 🔥 Solo el `id` del rol
-        'organization.id', // 🔥 Solo el `id` de la organización
+    const user = await this.usersModel
+      .findById(userId)
+      .populate<{ role: UserRole; organization: Organization }>([
+        { path: 'role', select: '_id' },
+        { path: 'organization', select: '_id' },
       ])
-      .where('user.id = :userId', { userId })
-      .getOne();
+      .select(
+        'firstName middleName familyName avatar createdAt role organization',
+      )
+      .exec();
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
     return {
-      id: user.id,
+      id: user._id,
       firstName: user.firstName,
       middleName: user.middleName,
       familyName: user.familyName,
       avatar: user.avatar,
       createdAt: user.createdAt,
-      roleId: (user as any).role?.id, // 🔥 Solo el `id` del rol
-      organizationId: (user as any).organization?.id, // 🔥 Solo el `id` de la organización
+      roleId: user.role?._id,
+      organizationId: user.organization?._id,
     };
   }
 }

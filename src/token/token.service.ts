@@ -4,13 +4,13 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { AuthenticationCode } from '../authentication/authentication.model';
-import { Repository } from 'typeorm';
-import { RefreshToken } from './refresh-token.model';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { AuthenticationCode } from '../authentication/authentication-code.schema';
+import { RefreshToken } from './refresh-token.schema';
 import { JWT_EXPIRATION_TIME, verifyToken } from '../utils/helpers/jwt.helper';
 import { GrantType } from '../utils/enums/grant-type.enum';
-import { User } from '../user/user.model';
+import { User } from '../user/user.schema';
 import { UserStatus } from '../utils/enums/user-status.enum';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -23,17 +23,18 @@ export class TokenService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    @InjectRepository(AuthenticationCode)
-    private authenticationRepository: Repository<AuthenticationCode>,
-    @InjectRepository(RefreshToken)
-    private refreshTokenRepository: Repository<RefreshToken>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+    @InjectModel(AuthenticationCode.name)
+    private readonly authenticationModel: Model<AuthenticationCode>,
+    @InjectModel(RefreshToken.name)
+    private readonly refreshTokenModel: Model<RefreshToken>,
+    @InjectModel(User.name)
+    private readonly userModel: Model<User>,
   ) {
     this.privateKey = Buffer.from(
       this.configService.get<string>('JWT_SIGNING_PRIVATE_KEY_BASE64') || '',
       'base64',
     ).toString('utf-8');
+
     this.publicKey = Buffer.from(
       this.configService.get<string>('JWT_PUBLIC_KEY_BASE64') || '',
       'base64',
@@ -42,14 +43,10 @@ export class TokenService {
       .trim();
   }
 
-  /**
-   * ✅ Intercambiar un authenticationCode por un accessToken + refreshToken
-   */
   async exchangeCodeForToken(authenticationCode: string, grantType: GrantType) {
-    const authCode = await this.authenticationRepository.findOne({
-      where: { code: authenticationCode },
-      relations: ['user'],
-    });
+    const authCode = await this.authenticationModel
+      .findOne({ code: authenticationCode })
+      .populate<{ user: User }>('user');
 
     if (!authCode) {
       throw new NotFoundException('Invalid authentication code');
@@ -64,25 +61,23 @@ export class TokenService {
     const accessToken = await this.generateAccessToken(authCode.user);
     const refreshToken = await this.generateRefreshToken(authCode.user);
 
-    // ✅ Guardar el nuevo Refresh Token en la base de datos
-    await this.refreshTokenRepository.save({
+    await this.refreshTokenModel.create({
       token: refreshToken,
-      user: authCode.user,
-      expiresIn: JWT_EXPIRATION_TIME.REFRESH_TOKEN, // 7 días en segundos
+      user: authCode.user._id,
+      expiresIn: JWT_EXPIRATION_TIME.REFRESH_TOKEN,
       expiresAt: new Date(
         Date.now() + JWT_EXPIRATION_TIME.REFRESH_TOKEN * 1000,
-      ), // 📅 Fecha exacta
+      ),
     });
 
-    // ❗ Eliminar el authenticationCode ya usado
-    await this.authenticationRepository.delete({ code: authenticationCode });
+    await this.authenticationModel.deleteOne({ code: authenticationCode });
 
     return { accessToken, refreshToken };
   }
 
   async generateAccessToken(user: User) {
     return this.jwtService.sign(
-      { userId: user.id },
+      { userId: user._id },
       {
         privateKey: this.privateKey,
         expiresIn: this.configService.get<string>('JWT_EXPIRE') || '1h',
@@ -92,31 +87,33 @@ export class TokenService {
   }
 
   async generateRefreshToken(user: User) {
-    const refreshToken = this.jwtService.sign(
-      { userId: user.id },
+    return this.jwtService.sign(
+      { userId: user._id },
       {
         privateKey: this.privateKey,
-        expiresIn: '7d', // Configurable en .env
+        expiresIn: '7d',
         algorithm: 'RS256',
       },
     );
-
-    return refreshToken;
   }
 
   async validateUser(userId: string): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
+    const user = await this.userModel.findOne({
+      _id: userId,
+      status: UserStatus.ACTIVE,
+    });
+
     if (!user) {
       throw new UnauthorizedException('User not found or inactive');
     }
+
     return user;
   }
 
   async validateRefreshToken(token: string): Promise<User | null> {
-    const refreshToken = await this.refreshTokenRepository.findOne({
-      where: { token },
-      relations: ['user'],
-    });
+    const refreshToken = await this.refreshTokenModel
+      .findOne({ token })
+      .populate<{ user: User }>('user');
 
     if (!refreshToken || refreshToken.expiresAt < new Date()) {
       throw new UnauthorizedException('Invalid or expired refresh token');
@@ -125,16 +122,13 @@ export class TokenService {
     return refreshToken.user;
   }
 
-  /**
-   * ✅ Refrescar un token usando el refreshToken
-   */
   async refreshToken(oldRefreshToken: string, grantType: GrantType) {
-    // 🚨 Verificar la validez del refresh token
     if (grantType !== 'refresh_token') {
       throw new BadRequestException(
         `Invalid grantType: expected "refresh_token", received "${grantType}"`,
       );
     }
+
     let decodedToken;
     try {
       decodedToken = this.jwtService.verify(oldRefreshToken, {
@@ -150,116 +144,83 @@ export class TokenService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // 🚨 Buscar el refresh token en la base de datos
-    const existingToken = await this.refreshTokenRepository.findOne({
-      where: { token: oldRefreshToken },
-      relations: ['user'],
-    });
+    const existingToken = await this.refreshTokenModel
+      .findOne({ token: oldRefreshToken })
+      .populate<{ user: User }>('user');
 
     if (!existingToken) {
       throw new UnauthorizedException('Refresh token not found');
     }
 
-    // ⏳ Si el token ha expirado, eliminarlo
     if (new Date() > existingToken.expiresAt) {
-      await this.refreshTokenRepository.delete(existingToken.id);
+      await this.refreshTokenModel.deleteOne({ _id: existingToken._id });
       throw new UnauthorizedException('Refresh token expired');
     }
 
-    // 🚨 Si el token ya fue revocado, rechazarlo
     if (existingToken.revokedAt) {
       throw new UnauthorizedException('Refresh token has already been used.');
     }
 
-    // 🚨 Si el refresh token ya se usó una vez, evitar su reutilización
     if (existingToken.refreshCount >= 1) {
-      await this.refreshTokenRepository.update(existingToken.id, {
-        revokedAt: new Date(),
-      });
+      await this.refreshTokenModel.updateOne(
+        { _id: existingToken._id },
+        { revokedAt: new Date() },
+      );
       throw new UnauthorizedException(
         'Refresh token already used. Please log in again.',
       );
     }
 
-    // 🛑 Revocar el refresh token inmediatamente (One-Time Usage)
-    await this.refreshTokenRepository.update(existingToken.id, {
-      revokedAt: new Date(),
-      refreshCount: existingToken.refreshCount + 1, // Incrementar el uso
-    });
+    await this.refreshTokenModel.updateOne(
+      { _id: existingToken._id },
+      {
+        revokedAt: new Date(),
+        refreshCount: existingToken.refreshCount + 1,
+      },
+    );
 
-    // ✅ Generar solo un nuevo **Access Token**, pero NO un nuevo Refresh Token
     const newAccessToken = await this.generateAccessToken(existingToken.user);
-
     return { accessToken: newAccessToken };
   }
 
   async validateAndRevokeRefreshToken(refreshToken: string) {
-    const existingToken = await this.refreshTokenRepository.findOne({
-      where: { token: refreshToken },
-      relations: ['user'],
+    const existingToken = await this.refreshTokenModel.findOne({
+      token: refreshToken,
     });
 
     if (!existingToken) return null;
 
-    // ⏳ Si el token ha expirado
     if (new Date() > existingToken.expiresAt) {
-      await this.refreshTokenRepository.update(existingToken.id, {
-        revokedAt: new Date(),
-      });
+      await this.refreshTokenModel.updateOne(
+        { _id: existingToken._id },
+        { revokedAt: new Date() },
+      );
       return null;
     }
 
-    // 🚨 Si el token ya fue revocado, es un intento de reutilización
     if (existingToken.revokedAt) {
       throw new UnauthorizedException('Refresh token has been revoked.');
     }
 
-    // 🛑 Revocar el token actual antes de emitir uno nuevo
-    await this.refreshTokenRepository.update(existingToken.id, {
-      revokedAt: new Date(),
-    });
+    await this.refreshTokenModel.updateOne(
+      { _id: existingToken._id },
+      { revokedAt: new Date() },
+    );
 
     return existingToken;
   }
 
-  // async generateNewTokens(userId: string) {
-  //   // 🔐 Generar nuevo Access Token
-  //   const newAccessToken = generateAccessToken(userId);
-
-  //   // 🔐 Generar nuevo Refresh Token
-  //   const newRefreshToken = generateRefreshToken(userId);
-
-  //   // 💾 Guardar el nuevo Refresh Token en la base de datos
-  //   const savedRefreshToken = await this.refreshTokenRepository.save({
-  //     token: newRefreshToken,
-  //     user: { id: userId }, // Asociar el token con el usuario
-  //     expiresIn: JWT_EXPIRATION_TIME.REFRESH_TOKEN, // Tiempo de vida en segundos
-  //     expiresAt: new Date(
-  //       Date.now() + JWT_EXPIRATION_TIME.REFRESH_TOKEN * 1000,
-  //     ),
-  //   });
-
-  //   return {
-  //     accessToken: newAccessToken,
-  //     refreshToken: savedRefreshToken.token,
-  //   };
-  // }
-
-  /**
-   * ✅ Valida el token JWT y retorna el usuario autenticado
-   */
   async validateToken(token: string): Promise<User> {
     try {
-      // 🔑 Verificar y decodificar el token
       const decoded = verifyToken(token);
 
       if (!decoded.userId) {
         throw new UnauthorizedException('Invalid token payload');
       }
 
-      // 🔍 Buscar el usuario en la base de datos
-      const user = await this.userRepository.findOne({
-        where: { id: decoded.userId, status: UserStatus.ACTIVE },
+      const user = await this.userModel.findOne({
+        _id: decoded.userId,
+        status: UserStatus.ACTIVE,
       });
 
       if (!user) {

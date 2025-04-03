@@ -42,11 +42,11 @@ export class UserRoleController {
     @Param('id') id: string,
     @Body() updateUserRoleDto: UpdateUserRoleDto,
   ) {
-    return this.userRoleService.update(+id, updateUserRoleDto);
+    return this.userRoleService.update(id, updateUserRoleDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.userRoleService.remove(+id);
+    return this.userRoleService.remove(id);
   }
 }

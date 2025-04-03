@@ -1,4 +1,4 @@
-import { Organization } from './organization.model';
+import { Organization } from './organization.schema';
 
 describe.skip('Organization', () => {
   it('should be defined', () => {

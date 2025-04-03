@@ -1,23 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { RefreshToken } from './refresh-token.model';
+import { InjectModel } from '@nestjs/mongoose';
+import { RefreshToken } from './refresh-token.schema';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class TokenCleanupService {
   constructor(
-    @InjectRepository(RefreshToken)
-    private refreshTokenRepository: Repository<RefreshToken>,
+    @InjectModel(RefreshToken.name)
+    private readonly refreshTokenModel: Model<RefreshToken>,
   ) {}
 
-  async deleteExpiredTokens() {
-    await this.refreshTokenRepository
-      .createQueryBuilder()
-      .delete()
-      .from(RefreshToken)
-      .where('expiresAt < :now', { now: new Date() })
-      .execute();
-    
+  async deleteExpiredTokens(): Promise<void> {
+    await this.refreshTokenModel.deleteMany({
+      expiresAt: { $lt: new Date() },
+    });
+
     console.log('✅ Expired refresh tokens deleted');
   }
 }
