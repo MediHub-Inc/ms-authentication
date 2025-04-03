@@ -1,19 +1,24 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { UserRole } from './user-role.schema';
+import { UserPermission } from '../user-permission/user-permission.schema';
 import { CreateUserRoleDto } from './dto/create-user-role.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
-import { UserRole } from './user-role.model';
-import { DeepPartial, In, Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { UserPermission } from 'src/user-permission/user-permission.model';
 import { UserRole as UserRoleEnum } from '../utils/enums/user-role.enum';
 
 @Injectable()
 export class UserRoleService {
   constructor(
-    @InjectRepository(UserRole)
-    private userRoleRepository: Repository<UserRole>,
-    @InjectRepository(UserPermission)
-    private userPermissionRepository: Repository<UserPermission>,
+    @InjectModel(UserRole.name)
+    private readonly userRoleModel: Model<UserRole>,
+
+    @InjectModel(UserPermission.name)
+    private readonly userPermissionModel: Model<UserPermission>,
   ) {}
 
   async create(createUserRoleDtoArray: CreateUserRoleDto[]) {
@@ -35,8 +40,8 @@ export class UserRoleService {
         );
       }
 
-      const permissions = await this.userPermissionRepository.findBy({
-        id: In(createUserRoleDto.permissions),
+      const permissions = await this.userPermissionModel.find({
+        _id: { $in: createUserRoleDto.permissions },
       });
 
       if (!permissions || permissions.length === 0) {
@@ -45,12 +50,12 @@ export class UserRoleService {
         );
       }
 
-      const createdUserRole = this.userRoleRepository.create({
+      const createdUserRole = await this.userRoleModel.create({
         name: roleName,
         description: createUserRoleDto.description,
-        isActive: createUserRoleDto.isActive,
-        permissions: permissions,
-      } as DeepPartial<UserRole>);
+        isActive: createUserRoleDto.isActive ?? true,
+        permissions: permissions.map((p) => p._id),
+      });
 
       if (!createdUserRole) {
         throw new InternalServerErrorException(
@@ -61,51 +66,53 @@ export class UserRoleService {
       createdRoles.push(createdUserRole);
     }
 
-    // ✅ Guardar todos los roles en batch
-    const insertedUserRoles = await this.userRoleRepository.save(createdRoles);
+    return createdRoles;
+  }
 
-    if (!insertedUserRoles || insertedUserRoles.length === 0) {
-      throw new InternalServerErrorException('User Roles could not be saved');
+  async findAll() {
+    return this.userRoleModel.find().populate('permissions').exec();
+  }
+
+  async findOne(id: string) {
+    const role = await this.userRoleModel
+      .findById(id)
+      .populate('permissions')
+      .exec();
+
+    if (!role) throw new NotFoundException(`Role with ID ${id} not found`);
+
+    return role;
+  }
+
+  async findOneByName(roleName: string) {
+    return this.userRoleModel
+      .findOne({ name: roleName as UserRoleEnum })
+      .populate('permissions')
+      .exec();
+  }
+
+  async update(id: string, updateUserRoleDto: UpdateUserRoleDto) {
+    const existingRole = await this.userRoleModel.findById(id);
+    if (!existingRole) {
+      throw new NotFoundException(`User Role not found`);
     }
 
-    return insertedUserRoles;
+    const updatedRole = await this.userRoleModel
+      .findByIdAndUpdate(
+        id,
+        {
+          ...updateUserRoleDto,
+          permissions: updateUserRoleDto.permissions,
+        },
+        { new: true },
+      )
+      .populate('permissions')
+      .exec();
+
+    return updatedRole;
   }
 
-  findAll() {
-    return this.userRoleRepository.find();
-  }
-  findOne(id: string) {
-    return this.userRoleRepository.findOne({
-      where: { id: id },
-      relations: ['permissions'],
-    });
-  }
-
-  findOneByName(roleName: string) {
-    console.log(roleName);
-    return this.userRoleRepository.findOne({
-      where: { name: roleName as UserRoleEnum },
-      relations: ['permissions'],
-    });
-  }
-
-  async update(id: number, updateUserRoleDto: UpdateUserRoleDto) {
-    const userRole = await this.userRoleRepository.findOne({
-      where: { id: String(id) },
-    });
-    if (!userRole)
-      throw new InternalServerErrorException(`User Role could not be found`);
-
-    const updatedData: UserRole = {
-      ...updateUserRoleDto,
-      permissions: updateUserRoleDto.permissions as unknown as UserPermission[],
-    } as UserRole;
-
-    await this.userRoleRepository.update(id, updatedData);
-    return this.userRoleRepository.findOne({ where: { id: String(id) } });
-  }
-
-  remove(id: number) {
-    return this.userRoleRepository.delete(id);
+  async remove(id: string) {
+    return this.userRoleModel.findByIdAndDelete(id).exec();
   }
 }

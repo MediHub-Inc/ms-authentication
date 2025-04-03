@@ -1,21 +1,30 @@
 import { Module } from '@nestjs/common';
 import { AuthenticationService } from './authentication.service';
 import { AuthenticationController } from './authentication.controller';
-import { AuthenticationCode } from './authentication.model';
-import { UserCredential } from '../user-credential/user-credential.model';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from '../user/user.model';
-import { Organization } from '../organization/organization.model';
-import { UserRole } from '../user-role/user-role.model';
+import {
+  AuthenticationCode,
+  AuthenticationCodeSchema,
+} from './authentication-code.schema';
+import {
+  UserCredential,
+  UserCredentialSchema,
+} from '../user-credential/user-credential.schema';
+import { User, UserSchema } from '../user/user.schema';
+import {
+  Organization,
+  OrganizationSchema,
+} from '../organization/organization.schema';
+import { UserRole, UserRoleSchema } from '../user-role/user-role.schema';
+import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      AuthenticationCode,
-      UserCredential,
-      User,
-      Organization,
-      UserRole,
+    MongooseModule.forFeature([
+      { name: AuthenticationCode.name, schema: AuthenticationCodeSchema },
+      { name: User.name, schema: UserSchema },
+      { name: UserCredential.name, schema: UserCredentialSchema },
+      { name: Organization.name, schema: OrganizationSchema },
+      { name: UserRole.name, schema: UserRoleSchema },
     ]),
   ],
   controllers: [AuthenticationController],

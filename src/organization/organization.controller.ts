@@ -1,8 +1,8 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { Organization } from './organization.model';
+import { Organization } from './organization.schema';
 import { OrganizationService } from './organization.service';
 
-@Controller('organization') 
+@Controller('organization')
 export class OrganizationController {
   constructor(private organizationService: OrganizationService) {}
   @Post()

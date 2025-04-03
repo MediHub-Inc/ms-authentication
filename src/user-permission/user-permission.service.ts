@@ -1,16 +1,17 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
 import { CreateUserPermissionDto } from './dto/create-user-permission.dto';
 import { UpdateUserPermissionDto } from './dto/update-user-permission.dto';
-import { UserPermission } from './user-permission.model';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
+import { UserPermission } from './user-permission.schema';
+import { Model } from 'mongoose';
 
 @Injectable()
 export class UserPermissionService {
   constructor(
-    @InjectRepository(UserPermission)
-    private userPermissionRepository: Repository<UserPermission>,
+    @InjectModel(UserPermission.name)
+    private readonly userPermissionModel: Model<UserPermission>,
   ) {}
+
   async create(createUserPermissionDto: CreateUserPermissionDto[]) {
     if (
       !Array.isArray(createUserPermissionDto) ||
@@ -19,31 +20,33 @@ export class UserPermissionService {
       throw new BadRequestException('No permissions provided');
     }
 
-    // ✅ Crear los permisos en batch
-    const createdUserPermissions = this.userPermissionRepository.create(
+    // ✅ Crear en batch con Mongoose
+    const insertedUserPermissions = await this.userPermissionModel.insertMany(
       createUserPermissionDto,
-    );
-
-    // ✅ Guardar en la BD
-    const insertedUserPermissions = await this.userPermissionRepository.save(
-      createdUserPermissions,
     );
 
     return insertedUserPermissions;
   }
 
   findAll() {
-    return this.userPermissionRepository.find();
+    return this.userPermissionModel.find().exec();
   }
+
   findOne(id: string) {
-    return this.userPermissionRepository.findOne({ where: { id } });
+    return this.userPermissionModel.findById(id).exec();
   }
 
   update(id: string, updateUserPermissionDto: UpdateUserPermissionDto) {
-    return this.userPermissionRepository.update(id, updateUserPermissionDto);
+    return this.userPermissionModel.findByIdAndUpdate(
+      id,
+      updateUserPermissionDto,
+      {
+        new: true,
+      },
+    );
   }
 
   remove(id: string) {
-    return this.userPermissionRepository.delete(id);
+    return this.userPermissionModel.findByIdAndDelete(id);
   }
 }

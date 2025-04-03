@@ -3,17 +3,17 @@ import { IsString, IsNotEmpty, IsBoolean, IsArray } from 'class-validator';
 export class CreateUserRoleDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  name!: string;
 
   @IsString()
   @IsNotEmpty()
-  description: string;
+  description!: string;
 
   @IsArray()
   @IsNotEmpty()
-  permissions: string[];
+  permissions!: string[];
 
   @IsBoolean()
   @IsNotEmpty()
-  isActive: boolean;
+  isActive!: boolean;
 }

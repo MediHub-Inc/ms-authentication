@@ -3,40 +3,41 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Organization } from './organization.model';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+import { Organization } from './organization.schema';
 
 @Injectable()
 export class OrganizationService {
   constructor(
-    @InjectRepository(Organization)
-    private organizationRepository: Repository<Organization>,
+    @InjectModel(Organization.name)
+    private readonly organizationModel: Model<Organization>,
   ) {}
 
-  async createOrganization(organization: Organization): Promise<Organization> {
-    console.log("organization: ", organization);
-    const createdOrganization = await this.organizationRepository.create(organization);
-    if (!createdOrganization)
-      throw new InternalServerErrorException(`Organization could not be created`);
-    const insertedOrganization = await this.organizationRepository.save(
-      createdOrganization,
-    );
-    if (!insertedOrganization)
-      throw new InternalServerErrorException(`Organization could not be save`);
-    return insertedOrganization;
+  async createOrganization(
+    organizationData: Partial<Organization>,
+  ): Promise<Organization> {
+    try {
+      const createdOrganization =
+        await this.organizationModel.create(organizationData);
+      return createdOrganization;
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException(
+        `Organization could not be created`,
+      );
+    }
   }
 
-  async getOrganizationById(id: number): Promise<Organization> {
-    const organization = await this.organizationRepository.find({
-      where: [
-        {
-          id: id.toString(),
-        },
-      ],
-    });
-    if (!organization[0])
-      throw new NotFoundException(`Organization with id ${id} could not be found!`);
-    return organization[0];
+  async getOrganizationById(
+    id: string | Types.ObjectId,
+  ): Promise<Organization> {
+    const organization = await this.organizationModel.findById(id);
+    if (!organization) {
+      throw new NotFoundException(
+        `Organization with id ${id} could not be found!`,
+      );
+    }
+    return organization;
   }
 }
